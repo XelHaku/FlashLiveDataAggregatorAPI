@@ -1,0 +1,45 @@
+{
+  "name": "flashscoreaggregatorapi",
+  "version": "1.0.0",
+  "description": "Express server API to collect and serve FalshScore Data for the Arenaton",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XelHaku/FlashScoreAggregatorAPI.git"
+  },
+  "keywords": [
+    "Flashscore",
+    "mongodb",
+    "express",
+    "arenaton"
+  ],
+  "author": "Juan Tamez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/XelHaku/FlashScoreAggregatorAPI/issues"
+  },
+  "homepage": "https://github.com/XelHaku/FlashScoreAggregatorAPI#readme",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "ckey": "^1.0.3",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "mongoose": "^7.1.0",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.22"
+  },
+  "devDependencies": {
+    "eslint": "^8.40.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.32.2",
+    "prettier": "^2.8.8"
+  }
+}
