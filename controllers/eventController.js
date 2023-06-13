@@ -89,7 +89,12 @@ exports.getTournamentsByCountry = async (req, res) => {
     },
     { $sort: { Country: 1 } },
   ]);
-
+  let data = [];
+  if (tournamentList.length > 0) {
+    data = tournamentList[0].League;
+  }
+  console.log("Ligas ", data);
+  console.log("Ligas ", data.length);
   res.status(200).json({
     status: "success getTournamentsByCountry",
     data: tournamentList[0].League,
@@ -226,6 +231,12 @@ exports.getCountries = async (req, res) => {
 
 exports.getCountriesBySport = async (req, res) => {
   const sportId = Number(req.params.sportId);
+  const days = Number(req.params.days);
+
+  const secondsInADay = 86400; // Number of seconds in a day (24 * 60 * 60)
+  const currentTime = Math.floor(Date.now() / 1000);
+  const timeCutOff = currentTime - days * secondsInADay;
+
   console.log("sportId", sportId);
   console.log("sportId", typeof sportId);
   const countriesList = await Event.aggregate([
@@ -242,6 +253,7 @@ exports.getCountriesBySport = async (req, res) => {
       $match: {
         "sport.ID": sportId, // Added condition
         "sport.AVAILABLE": true,
+        START_UTIME: { $gt: timeCutOff },
       },
     },
     {

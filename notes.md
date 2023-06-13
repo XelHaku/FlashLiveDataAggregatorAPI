@@ -40,6 +40,6 @@ lsof -i :3000
 kill -9 PID
 kill -9 $(lsof -t -i:3000)
 kill -9 $(lsof -t -i:8080)
-kill -9 $(lsof -t -i:5000)
+kill -9 $(lsof -t -i:4000)
 
 https://coderrocketfuel.com/article/create-and-deploy-an-express-rest-api-to-a-digitalocean-server
