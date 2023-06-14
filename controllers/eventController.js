@@ -218,8 +218,8 @@ exports.getCountries = async (req, res) => {
     {
       $project: {
         _id: 0, // Exclude the _id field
-        CountryName: "$_id", // Rename the _id field to Country
-        CountryId: "$countryId", // Include the CountryId field
+        countryName: "$_id", // Rename the _id field to Country
+        countryId: "$countryId", // Include the CountryId field
       },
     },
     { $sort: { CountryName: 1 } },
