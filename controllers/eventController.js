@@ -68,12 +68,12 @@ exports.getTournamentsByCountry = async (req, res) => {
     {
       $group: {
         _id: "$COUNTRY_ID",
-        countryName: { $first: "$COUNTRY_NAME" },
+        countryName: { $first: "$CATEGORY_NAME" },
         League: {
           $addToSet: {
             tournamentId: "$TOURNAMENT_ID",
             tournamentName: "$NAME_PART_2",
-            countryName: "$COUNTRY_NAME",
+            countryName: "$CATEGORY_NAME",
             countryId: "$COUNTRY_ID",
             sportId: "$SPORT",
           },
