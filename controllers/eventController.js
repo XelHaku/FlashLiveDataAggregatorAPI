@@ -73,7 +73,8 @@ exports.getTournamentsByCountry = async (req, res) => {
           $addToSet: {
             tournamentId: "$TOURNAMENT_ID",
             tournamentName: "$NAME_PART_2",
-            country: "$CATEGORY_NAME",
+            countryName: "$COUNTRY_NAME",
+            countryId: "$COUNTRY_ID",
             sportId: "$SPORT",
           },
         },
