@@ -71,9 +71,10 @@ exports.getTournamentsByCountry = async (req, res) => {
         countryName: { $first: "$COUNTRY_NAME" },
         League: {
           $addToSet: {
-            Id: "$TOURNAMENT_ID",
-            name: "$NAME_PART_2",
-            category: "$CATEGORY_NAME",
+            tournamentId: "$TOURNAMENT_ID",
+            tournamentName: "$NAME_PART_2",
+            country: "$CATEGORY_NAME",
+            sportId: "$SPORT",
           },
         },
         count: { $sum: 1 },
@@ -97,7 +98,7 @@ exports.getTournamentsByCountry = async (req, res) => {
   console.log("Ligas ", data.length);
   res.status(200).json({
     status: "success getTournamentsByCountry",
-    data: tournamentList[0].League,
+    data: data,
   });
 };
 
