@@ -222,7 +222,7 @@ exports.getCountries = async (req, res) => {
         countryId: "$countryId", // Include the CountryId field
       },
     },
-    { $sort: { CountryName: 1 } },
+    { $sort: { countryName: 1 } },
   ]);
 
   res.status(200).json({
@@ -267,11 +267,11 @@ exports.getCountriesBySport = async (req, res) => {
     {
       $project: {
         _id: 0,
-        CountryName: "$_id",
-        CountryId: "$countryId",
+        countryName: "$_id",
+        countryId: "$countryId",
       },
     },
-    { $sort: { CountryName: 1 } },
+    { $sort: { countryName: 1 } },
   ]);
   console.log("countriesList.length", countriesList.length);
 
