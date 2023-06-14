@@ -63,6 +63,7 @@ exports.getTournamentsByCountry = async (req, res) => {
         SPORT: { $eq: sportId },
         COUNTRY_ID: { $eq: countryId }, // Include COUNTRY_ID in the match query
         START_UTIME: { $gt: timeCutOff },
+        TOURNAMENT_ID: { $ne: "0" },
       },
     },
     {
