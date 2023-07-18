@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
 // const ck = require('ckey');
-const { EventListFlashLive } = require('./EventListFlashLive');
+const { EventListFlashLive } = require("./EventListFlashLive");
 // const { SportsFlashLive } = require('./SportsFlashLive');
 
 // const mongoose = require('mongoose');
@@ -10,7 +10,7 @@ const { EventListFlashLive } = require('./EventListFlashLive');
 async function getWeekEventsBySport(_sport) {
   let events = [];
   // eslint-disable-next-line no-plusplus
-  for (let i = -1; i <= 1; i++) {
+  for (let i = -1; i <= 7; i++) {
     try {
       const eventsDay = await EventListFlashLive(_sport, i);
       if (eventsDay !== undefined) {
