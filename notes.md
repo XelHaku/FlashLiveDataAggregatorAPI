@@ -43,3 +43,10 @@ kill -9 $(lsof -t -i:8080)
 kill -9 $(lsof -t -i:4000)
 
 https://coderrocketfuel.com/article/create-and-deploy-an-express-rest-api-to-a-digitalocean-server
+
+pm2
+https://pm2.keymetrics.io/docs/usage/quick-start/
+$ pm2 restart app_name
+$ pm2 reload app_name
+$ pm2 stop app_name
+$ pm2 delete app_name
