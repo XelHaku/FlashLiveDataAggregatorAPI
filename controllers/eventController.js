@@ -134,11 +134,14 @@ exports.getEventsByTournament = async (req, res) => {
 };
 
 exports.getEventById = async (req, res) => {
-  const { eventId } = req.params;
+  const { eventId } = req.params; // Extract the eventId from the request parameters.
+  console.log("eventId", eventId);
 
+  // Query the database to find the event with the given eventId.
+  // Using .lean() to get a plain JavaScript object instead of a Mongoose document for better performance.
   const event = await Event.findOne({ EVENT_ID: eventId }).lean();
 
-  // No event found
+  // If no event is found with the given ID, return a 404 Not Found response.
   if (!event) {
     return res.status(404).json({
       status: "Not Found",
@@ -146,38 +149,48 @@ exports.getEventById = async (req, res) => {
     });
   }
 
+  // Get the current time in seconds.
   const currentTime = Math.floor(Date.now() / 1000);
 
-  // Event needs to be updated
+  // Check if the event needs to be updated based on the following conditions:
+  // 1. If the current time is greater than the event's start time (START_UTIME).
+  // 2. If the event has not been updated in the last 5 minutes (lastUpdated < currentTime - 5 * 60).
+  // 3. If the event has no winner (WINNER is not defined).
   if (
     currentTime > event.START_UTIME &&
     (!event.lastUpdated || event.lastUpdated < currentTime - 5 * 60) &&
     !event.WINNER
   ) {
     try {
+      // Fetch updated event data from an external source using the EventById function.
       const newEvent = await EventById(eventId);
+
+      // Update the event data in the database using findOneAndUpdate method.
       const updatedEvent = await Event.findOneAndUpdate(
         { EVENT_ID: event.EVENT_ID },
         newEvent,
         {
-          upsert: true,
-          new: true,
-          setDefaultsOnInsert: true,
+          upsert: true, // Create a new document if no matching document is found.
+          new: true, // Return the updated document after the update operation.
+          setDefaultsOnInsert: true, // Set default values if a new document is created.
         }
       );
 
-      // Remove unwanted keys
+      // Remove unwanted keys from the updated event object.
       if (updatedEvent) {
         updatedEvent._id = undefined;
         updatedEvent.__v = undefined;
       }
 
       console.log("Updated or created event:", updatedEvent);
+
+      // Return a 200 success response with the updated event data.
       return res.status(200).json({
         status: "success getEventById",
         data: updatedEvent,
       });
     } catch (error) {
+      // If there's an error during the update process, return a 500 internal server error response.
       console.error("Error updating event:", error);
       return res.status(500).json({
         status: "error",
@@ -186,14 +199,72 @@ exports.getEventById = async (req, res) => {
     }
   }
 
-  // Remove unwanted keys
+  // Remove unwanted keys from the event object before returning it.
   event._id = undefined;
   event.__v = undefined;
 
+  // If the event doesn't need to be updated, return a 200 success response with the event data.
   return res.status(200).json({
     status: "success getEventById",
     data: event,
   });
+};
+// eventController.js
+
+// Import necessary modules and models
+
+exports.getUpcomingEventsBySportId = async (req, res) => {
+  const { sportId } = req.params;
+  let days = parseInt(req.query.days); // Parse daysAmount from query string to integer
+  // Check if the 'days' parameter is undefined or NaN (not a number)
+  if (isNaN(days) || days <= 0) {
+    // If 'days' is not provided or is not a valid positive integer, set a default value.
+    days = 2; // Set a default value of 3 days if 'days' is not valid or not provided.
+  }
+
+  console.log(days, "days");
+  // Calculate the timestamp for the current time and the future time based on daysAmount
+  const currentTime = Math.floor(Date.now() / 1000);
+  const futureTime = currentTime + days * 24 * 60 * 60; // Convert days to seconds
+
+  try {
+    // Query the database to find upcoming events for the given sportId and within the specified time range.
+    // Using .lean() to get a plain JavaScript object instead of a Mongoose document for better performance.
+    const upcomingEvents = await Event.find({
+      SPORT: sportId,
+      START_UTIME: { $gt: currentTime, $lt: futureTime }, // Filter events with start time within the future time range.
+    }).lean();
+
+    // If no upcoming events are found, return a 404 Not Found response.
+    if (upcomingEvents.length === 0) {
+      return res.status(404).json({
+        status: "Not Found",
+        message: "No upcoming events found for the specified sportId",
+      });
+    }
+
+    // Remove unwanted keys from the upcoming events array.
+    const cleanedUpcomingEvents = upcomingEvents.map((event) => {
+      event._id = undefined;
+      event.__v = undefined;
+      return event;
+    });
+
+    console.log("Upcoming events:", cleanedUpcomingEvents);
+
+    // Return a 200 success response with the upcoming events data.
+    return res.status(200).json({
+      status: "success getUpcomingEventsBySportId",
+      data: cleanedUpcomingEvents,
+    });
+  } catch (error) {
+    // If there's an error during the query process, return a 500 internal server error response.
+    console.error("Error fetching upcoming events:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error fetching upcoming events",
+    });
+  }
 };
 
 exports.getCountries = async (req, res) => {
