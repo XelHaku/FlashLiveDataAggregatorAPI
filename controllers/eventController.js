@@ -303,7 +303,7 @@ exports.getCountries = async (req, res) => {
   });
 };
 
-exports.getCountriesBySport = async (req, res) => {
+exports.getCountriesBySportId = async (req, res) => {
   const sportId = Number(req.params.sportId);
   const days = Number(req.params.days);
 

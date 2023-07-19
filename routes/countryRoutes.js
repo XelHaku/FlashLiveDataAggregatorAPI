@@ -4,6 +4,6 @@ const eventController = require("../controllers/eventController");
 const router = express.Router();
 
 router.route("/").get(eventController.getCountries);
-router.route("/:sportId/:days").get(eventController.getCountriesBySport);
+router.route("/:sportId/:days").get(eventController.getCountriesBySportId);
 
 module.exports = router;
