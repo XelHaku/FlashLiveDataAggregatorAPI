@@ -11,9 +11,9 @@ mongoose
     dbName: "flashLiveDB",
   })
   .then(() => console.log("DB connection successful!"));
-// getEvents();
-// // Then run getEvents() every hour
-// setInterval(getEvents, 60 * 60 * 1000); // 60 minutes * 60 seconds * 1000 milliseconds
+getEvents();
+// Then run getEvents() every hour
+setInterval(getEvents, 60 * 60 * 1000); // 60 minutes * 60 seconds * 1000 milliseconds
 
 app.listen(ck.PORT, () => {
   console.log(`App running on port: ${ck.PORT}`);
