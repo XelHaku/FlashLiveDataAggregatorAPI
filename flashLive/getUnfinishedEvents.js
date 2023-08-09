@@ -7,14 +7,17 @@ const Event = require("../models/eventModel");
 async function getUnfinishedEvents() {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
-    const twoHoursInSeconds = 24 * 60 * 60; // 2 hours in seconds
+    const twoHoursInSeconds = 3 * 60 * 60; // 2 hours in seconds
     const startTimeThreshold = currentTime - twoHoursInSeconds;
+
+    const fifteenMinutesAgo = 15 * 60 * 1000; // 15 minutes in milliseconds
 
     let eventsList = await Event.aggregate([
       {
         $match: {
           START_UTIME: { $lt: startTimeThreshold },
           STAGE_TYPE: { $ne: "FINISHED" },
+          lastUpdated: { $lt: fifteenMinutesAgo },
         },
       },
     ]);
