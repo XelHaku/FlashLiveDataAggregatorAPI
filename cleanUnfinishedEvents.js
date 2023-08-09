@@ -8,7 +8,7 @@ const Event = require("./models/eventModel");
 const { EventById } = require("./flashLive/EventById");
 const { scorePartValidation } = require("./flashLive/scorePartValidation");
 
-async function main() {
+async function cleanUnfinishedEvents() {
   try {
     await mongoose.connect(ck.CONNECTION_STRING, {
       useNewUrlParser: true,
@@ -39,17 +39,17 @@ async function main() {
   } catch (error) {
     console.error("Error:", error);
   } finally {
-    // mongoose.connection.close();
+    mongoose.connection.close();
   }
 }
 
-main();
+cleanUnfinishedEvents();
 
 async function getEvent(_eventId) {
   try {
     // Fetch updated event data from an external source using the EventById function.
     let newEvent = await EventById(_eventId);
-    console.log(newEvent);
+
     if (newEvent) {
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
