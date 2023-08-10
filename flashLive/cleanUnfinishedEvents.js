@@ -2,7 +2,7 @@ const {
   getUnfinishedEvents,
   deleteEventById,
 } = require("./getUnfinishedEvents");
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
 const ck = require("ckey");
 const Event = require("../models/eventModel");
 const { EventById } = require("./EventById");
@@ -33,7 +33,7 @@ async function cleanUnfinishedEvents() {
   } catch (error) {
     console.error("Error:", error);
   } finally {
-    mongoose.connection.close();
+    // mongoose.connection.close();
   }
 }
 

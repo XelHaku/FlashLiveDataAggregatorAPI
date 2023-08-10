@@ -6,6 +6,10 @@ const router = express.Router();
 // Auxiliary route as a child of the main route
 const upcomingRouter = express.Router({ mergeParams: true });
 upcomingRouter.get("/:sportId", eventController.getUpcomingEventsBySportId);
+upcomingRouter.get(
+  "/:sportId/:countryId",
+  eventController.getUpcomingEventsBySportIdAndCountryId
+);
 router.use("/upcoming", upcomingRouter);
 
 // Main route with primary path

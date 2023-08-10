@@ -218,25 +218,18 @@ exports.getEventById = async (req, res) => {
 
 exports.getUpcomingEventsBySportId = async (req, res) => {
   const { sportId } = req.params;
-  let days = parseInt(req.query.days); // Parse daysAmount from query string to integer
-  // Check if the 'days' parameter is undefined or NaN (not a number)
-  if (isNaN(days) || days <= 0) {
-    // If 'days' is not provided or is not a valid positive integer, set a default value.
-    days = 2; // Set a default value of 3 days if 'days' is not valid or not provided.
-  }
-
-  console.log(days, "days");
-  // Calculate the timestamp for the current time and the future time based on daysAmount
   const currentTime = Math.floor(Date.now() / 1000);
-  const futureTime = currentTime + days * 24 * 60 * 60; // Convert days to seconds
 
   try {
-    // Query the database to find upcoming events for the given sportId and within the specified time range.
+    // Query the database to find the first 100 youngest upcoming events for the given sportId and within the specified time range.
     // Using .lean() to get a plain JavaScript object instead of a Mongoose document for better performance.
     const upcomingEvents = await Event.find({
       SPORT: sportId,
-      START_UTIME: { $gt: currentTime, $lt: futureTime }, // Filter events with start time within the future time range.
-    }).lean();
+      START_UTIME: { $gt: currentTime }, // Filter events with start time within the future time range.
+    })
+      .sort({ START_UTIME: 1 }) // Sort events in ascending order of START_UTIME
+      .limit(200) // Limit the number of results to 100
+      .lean();
 
     // If no upcoming events are found, return a 404 Not Found response.
     if (upcomingEvents.length === 0) {
@@ -258,6 +251,55 @@ exports.getUpcomingEventsBySportId = async (req, res) => {
     // Return a 200 success response with the upcoming events data.
     return res.status(200).json({
       status: "success getUpcomingEventsBySportId",
+      data: cleanedUpcomingEvents,
+    });
+  } catch (error) {
+    // If there's an error during the query process, return a 500 internal server error response.
+    console.error("Error fetching upcoming events:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error fetching upcoming events",
+    });
+  }
+};
+
+exports.getUpcomingEventsBySportIdAndCountryId = async (req, res) => {
+  const { sportId, countryId } = req.params;
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  try {
+    // Query the database to find the first 100 youngest upcoming events for the given sportId, countryId, and within the specified time range.
+    // Using .lean() to get a plain JavaScript object instead of a Mongoose document for better performance.
+    const upcomingEvents = await Event.find({
+      SPORT: sportId,
+      COUNTRY_ID: countryId,
+      START_UTIME: { $gt: currentTime }, // Filter events with start time within the future time range.
+    })
+      .sort({ START_UTIME: 1 }) // Sort events in ascending order of START_UTIME
+      .limit(100) // Limit the number of results to 100
+      .lean();
+
+    // If no upcoming events are found, return a 404 Not Found response.
+    if (upcomingEvents.length === 0) {
+      return res.status(404).json({
+        status: "Not Found",
+        message:
+          "No upcoming events found for the specified sportId and countryId",
+      });
+    }
+
+    // Remove unwanted keys from the upcoming events array.
+    const cleanedUpcomingEvents = upcomingEvents.map((event) => {
+      event._id = undefined;
+      event.__v = undefined;
+      return event;
+    });
+
+    console.log("Upcoming events:", cleanedUpcomingEvents);
+
+    // Return a 200 success response with the upcoming events data.
+    return res.status(200).json({
+      status: "success getUpcomingEventsBySportIdAndCountryId",
       data: cleanedUpcomingEvents,
     });
   } catch (error) {
