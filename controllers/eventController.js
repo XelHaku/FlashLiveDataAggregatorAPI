@@ -313,7 +313,7 @@ exports.getUpcomingEventsBySportIdAndCountryId = async (req, res) => {
 };
 
 exports.getCountries = async (req, res) => {
-  const { sportId } = req.params;
+  // const { sportId } = req.params;
 
   const countriesList = await Event.aggregate([
     {
@@ -348,167 +348,45 @@ exports.getCountries = async (req, res) => {
   });
 };
 
-exports.getCountriesBySportId = async (req, res) => {
-  const sportId = Number(req.params.sportId);
-  const days = Number(req.params.days);
-
-  const secondsInADay = 86400; // Number of seconds in a day (24 * 60 * 60)
+exports.getCountriesWithUpcomingEvents = async (req, res) => {
+  const { sportId } = req.params;
   const currentTime = Math.floor(Date.now() / 1000);
-  const timeCutOff = currentTime - days * secondsInADay;
-
   console.log("sportId", sportId);
-  console.log("sportId", typeof sportId);
   const countriesList = await Event.aggregate([
     {
-      $lookup: {
-        from: "sports",
-        localField: "SPORT",
-        foreignField: "ID",
-        as: "sport",
-      },
-    },
-    { $unwind: "$sport" },
-    {
       $match: {
-        "sport.ID": sportId, // Added condition
-        "sport.AVAILABLE": true,
-        START_UTIME: { $gt: timeCutOff },
+        SPORT: Number(sportId), // Filter events for the specified sportId
+        START_UTIME: { $gt: currentTime }, // Filter events with start time within the future time range.
       },
     },
     {
       $group: {
-        _id: "$NAME_PART_1",
-        countryId: { $first: "$COUNTRY_ID" },
+        _id: "$COUNTRY_ID",
+        countryName: { $first: "$NAME_PART_1" }, // Add the field NAME_PART_1 as countryName
+        eventCount: { $sum: 1 }, // Count the number of events for each country
+        tournaments: {
+          $addToSet: {
+            tournamentId: "$TOURNAMENT_ID",
+            tournamentImage: "$TOURNAMENT_IMAGE",
+            name: "$SHORT_NAME",
+          },
+        },
       },
     },
     {
       $project: {
-        _id: 0,
-        countryName: "$_id",
-        countryId: "$countryId",
+        _id: 0, // Exclude the _id field
+        countryName: "$countryName", // Include the countryName field
+        countryId: "$_id", // Rename the _id field to countryId
+        eventCount: "$eventCount", // Include the eventCount field
+        tournaments: "$tournaments", // Include the tournaments field
       },
     },
     { $sort: { countryName: 1 } },
   ]);
-  console.log("countriesList.length", countriesList.length);
 
   res.status(200).json({
-    status: "success getCountries",
+    status: "success getCountriesWithUpcomingEvents",
     data: countriesList,
   });
 };
-
-// function scorePartValidation(event) {
-//   // HOME
-//   if (event.HOME_SCORE_PART_1) {
-//     event.HOME_SCORE_PART_1 = fixString(event.HOME_SCORE_PART_1);
-//   }
-
-//   if (event.HOME_SCORE_PART_2) {
-//     event.HOME_SCORE_PART_2 = fixString(event.HOME_SCORE_PART_2);
-//   }
-
-//   if (event.HOME_SCORE_PART_3) {
-//     event.HOME_SCORE_PART_3 = fixString(event.HOME_SCORE_PART_3);
-//   }
-
-//   if (event.HOME_SCORE_PART_4) {
-//     event.HOME_SCORE_PART_4 = fixString(event.HOME_SCORE_PART_4);
-//   }
-
-//   if (event.HOME_SCORE_PART_5) {
-//     event.HOME_SCORE_PART_5 = fixString(event.HOME_SCORE_PART_5);
-//   }
-
-//   if (event.HOME_SCORE_PART_6) {
-//     event.HOME_SCORE_PART_6 = fixString(event.HOME_SCORE_PART_6);
-//   }
-
-//   if (event.HOME_SCORE_PART_7) {
-//     event.HOME_SCORE_PART_7 = fixString(event.HOME_SCORE_PART_7);
-//   }
-
-//   if (event.HOME_SCORE_PART_8) {
-//     event.HOME_SCORE_PART_8 = fixString(event.HOME_SCORE_PART_8);
-//   }
-
-//   if (event.HOME_SCORE_PART_9) {
-//     event.HOME_SCORE_PART_9 = fixString(event.HOME_SCORE_PART_9);
-//   }
-//   //AWAY
-//   if (event.AWAY_SCORE_PART_1) {
-//     event.AWAY_SCORE_PART_1 = fixString(event.AWAY_SCORE_PART_1);
-//   }
-
-//   if (event.AWAY_SCORE_PART_2) {
-//     event.AWAY_SCORE_PART_2 = fixString(event.AWAY_SCORE_PART_2);
-//   }
-
-//   if (event.AWAY_SCORE_PART_3) {
-//     event.AWAY_SCORE_PART_3 = fixString(event.AWAY_SCORE_PART_3);
-//   }
-
-//   if (event.AWAY_SCORE_PART_4) {
-//     event.AWAY_SCORE_PART_4 = fixString(event.AWAY_SCORE_PART_4);
-//   }
-
-//   if (event.AWAY_SCORE_PART_5) {
-//     event.AWAY_SCORE_PART_5 = fixString(event.AWAY_SCORE_PART_5);
-//   }
-
-//   if (event.AWAY_SCORE_PART_6) {
-//     event.AWAY_SCORE_PART_6 = fixString(event.AWAY_SCORE_PART_6);
-//   }
-
-//   if (event.AWAY_SCORE_PART_7) {
-//     event.AWAY_SCORE_PART_7 = fixString(event.AWAY_SCORE_PART_7);
-//   }
-
-//   if (event.AWAY_SCORE_PART_8) {
-//     event.AWAY_SCORE_PART_8 = fixString(event.AWAY_SCORE_PART_8);
-//   }
-
-//   if (event.AWAY_SCORE_PART_9) {
-//     event.AWAY_SCORE_PART_9 = fixString(event.AWAY_SCORE_PART_9);
-//   }
-//   return event;
-// }
-
-// function fixString(_value) {
-//   if (typeof _value === "string") {
-//     const numericValue = Number(_value);
-//     if (isNaN(numericValue)) {
-//       _value = 0;
-//     } else {
-//       _value = numericValue;
-//     }
-//   }
-
-//   return _value;
-// }
-
-// exports.getUnfinishedEvents = async (req, res) => {
-//   const currentTime = Math.floor(Date.now() / 1000);
-//   const twoHoursInSeconds = 2 * 60 * 60; // 2 hours in seconds
-//   const startTimeThreshold = currentTime + twoHoursInSeconds;
-
-//   let eventsList = await Event.aggregate([
-//     {
-//       $match: {
-//         START_UTIME: { $gt: startTimeThreshold },
-//         STAGE_TYPE: { $ne: "FINISHED" },
-//       },
-//     },
-//   ]);
-
-//   eventsList = eventsList.map((sport) => {
-//     delete sport._id;
-//     delete sport.__v;
-//     return sport;
-//   });
-
-//   res.status(200).json({
-//     status: "success getActiveEvents",
-//     data: eventsList,
-//   });
-// };
