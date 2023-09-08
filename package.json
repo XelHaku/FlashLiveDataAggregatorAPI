@@ -4,7 +4,8 @@
   "description": "Express server API to collect and serve FalshScore Data for the Arenaton",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node server.js",
+    "build:digitalocean": "npm install --production=false && npm run build && npm ci"
   },
   "repository": {
     "type": "git",
