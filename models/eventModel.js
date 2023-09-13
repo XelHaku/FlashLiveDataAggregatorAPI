@@ -1,7 +1,20 @@
 const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
-
+const NewsSchema = new Schema({
+  ID: { type: String, required: true },
+  TITLE: { type: String, required: true },
+  LINK: { type: String, required: true },
+  PUBLISHED: { type: Number, required: true },
+  PROVIDER_NAME: { type: String, required: true },
+  CATEGORY_NAME: { type: String, required: true },
+  LINKS: [
+    {
+      IMAGE_VARIANT_ID: { type: Number, required: true },
+      IMAGE_VARIANT_URL: { type: String, required: true },
+    },
+  ],
+});
 const eventSchema = new Schema({
   EVENT_ID: { type: String, required: true, unique: true },
   SPORT: { type: Number, required: true },
@@ -75,6 +88,8 @@ const eventSchema = new Schema({
 
   //EXTRAS
   INFO_NOTICE: { type: String, required: false },
+  // Adding the NEWS array to the schema
+  NEWS: [NewsSchema, (required = false)],
 });
 
 const Event = mongoose.model("Event", eventSchema);

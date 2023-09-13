@@ -157,8 +157,14 @@ exports.getEventById = async (req, res) => {
   // 1. If the current time is greater than the event's start time (START_UTIME).
   // 2. If the event has not been updated in the last 5 minutes (lastUpdated < currentTime - 5 * 60).
   // 3. If the event has no winner (WINNER is not defined).
+
+  // if (
+  //   currentTime > event.START_UTIME &&
+  console.log(
+    "event.lastUpdated < currentTime - 5 * 60",
+    event.lastUpdated < currentTime - 5 * 60
+  );
   if (
-    currentTime > event.START_UTIME &&
     (!event.lastUpdated || event.lastUpdated < currentTime - 5 * 60) &&
     !event.WINNER
   ) {
@@ -167,6 +173,41 @@ exports.getEventById = async (req, res) => {
       let newEvent = await EventById(eventId);
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
+      let news = null;
+      // let news = {
+      //   ID: "AZ8uUeEd",
+      //   TITLE:
+      //     "Berrettini blows by Hurkacz, becomes Italy's 1st Grand Slam finalist in 45 years",
+      //   LINK: "https://www.cbc.ca/sports/tennis/berrettini-hurkacz-djokovic-shapovalov-wimbeldon-roundup-july-9-1.6096085?cmp=rss",
+      //   PUBLISHED: 1625846794,
+      //   PROVIDER_NAME: "CBC.ca",
+      //   CATEGORY_NAME: "Pre-Match",
+      //   LINKS: [
+      //     {
+      //       IMAGE_VARIANT_ID: 38,
+      //       IMAGE_VARIANT_URL:
+      //         "https://omapi.sporttube.com/image_upload/2021/07/09/rO8vgo2Cf917VLe.jpg",
+      //     },
+      //     {
+      //       IMAGE_VARIANT_ID: 39,
+      //       IMAGE_VARIANT_URL:
+      //         "https://omapi.sporttube.com/image_upload/2021/07/09/0cochy9b5dwsHoD.jpg",
+      //     },
+      //     {
+      //       IMAGE_VARIANT_ID: 40,
+      //       IMAGE_VARIANT_URL:
+      //         "https://omapi.sporttube.com/image_upload/2021/07/09/Fpwc4ETO01u2nPa.jpg",
+      //     },
+      //   ],
+      // };
+      try {
+        news = await NewsByEventId(eventId);
+      } catch (error) {}
+
+      // Add news as a new property to newEvent
+      if (news) {
+        newEvent.NEWS = news;
+      }
       // console.log(newEvent);
       // Update the event data in the database using findOneAndUpdate method.
       const updatedEvent = await Event.findOneAndUpdate(

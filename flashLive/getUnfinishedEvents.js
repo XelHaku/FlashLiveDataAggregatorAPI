@@ -10,14 +10,15 @@ async function getUnfinishedEvents() {
     const twoHoursInSeconds = 3 * 60 * 60; // 2 hours in seconds
     const startTimeThreshold = currentTime - twoHoursInSeconds;
 
-    const fifteenMinutesAgo = 15 * 60 * 1000; // 15 minutes in milliseconds
+    let fifteenMinutesAgo = currentTime - 15 * 60 * 1000; // 15 minutes in milliseconds
+    // fifteenMinutesAgo = currentTime; // 15 minutes in milliseconds
 
     let eventsList = await Event.aggregate([
       {
         $match: {
           START_UTIME: { $lt: startTimeThreshold },
           STAGE_TYPE: { $ne: "FINISHED" },
-          lastUpdated: { $lt: fifteenMinutesAgo },
+          // lastUpdated: { $lt: fifteenMinutesAgo },
         },
       },
     ]);
@@ -33,30 +34,6 @@ async function getUnfinishedEvents() {
     return [];
   }
 }
-
-// module.exports = {};
-
-// async function deleteOldEvents() {
-//   try {
-//     const oneMonthInSeconds = 30 * 24 * 60 * 60; // 1 month in seconds
-//     const currentTime = Math.floor(Date.now() / 1000);
-//     const cutoffTime = currentTime - oneMonthInSeconds;
-
-//     // Find and delete events older than 1 month
-//     await Event.deleteMany({
-//       START_UTIME: { $lt: cutoffTime },
-//       STAGE_TYPE: { $ne: "FINISHED" },
-//     });
-
-//     console.log("Old events deleted successfully");
-//   } catch (error) {
-//     console.error("Error:", error);
-//   }
-// }
-
-// module.exports = { deleteOldEvents };
-
-/* eslint-disable no-console */
 
 async function deleteEventById(eventId) {
   try {

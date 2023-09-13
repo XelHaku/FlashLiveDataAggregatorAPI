@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const ck = require("ckey");
 const Event = require("./models/eventModel");
 const { EventById } = require("./flashLive/EventById");
+const { NewsByEventId } = require("./flashLive/NewsByEventId");
 const { scorePartValidation } = require("./flashLive/scorePartValidation");
 
 async function main() {
@@ -15,27 +16,12 @@ async function main() {
       // useCreateIndex: true,
       dbName: "flashLiveDB",
     });
+    const news = await NewsByEventId("6ZCocWsb");
+    console.log("news", news);
 
-    console.log("DB connection successful!");
-
-    const events = await getUnfinishedEvents();
-
-    for (const event of events) {
-      console.log(
-        "EVENT_ID",
-        event.EVENT_ID,
-        "STAGE_TYPE",
-        event.STAGE_TYPE,
-        "STAGE",
-        event.STAGE,
-        "START_UTIME",
-        new Date(event.START_UTIME * 1000).toLocaleString(),
-        "SPORT",
-        event.SPORT
-      );
-      await getEvent(event.EVENT_ID);
-    }
-    console.log("length", events.length);
+    news.forEach((element) => {
+      console.log(element);
+    });
   } catch (error) {
     console.error("Error:", error);
   } finally {
