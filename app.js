@@ -22,6 +22,11 @@ const limiter = rateLimit({
   windowMs: 60 * 1000,
   message: "Too many requests from this IP, please try again in a minute!",
 });
+
+// Welcome message route
+app.get("/", (req, res) => {
+  res.send("Welcome to Flash Data Aggregator!");
+});
 app.use("/api", limiter);
 
 app.use("/api/v1/sports", sportRouter);
