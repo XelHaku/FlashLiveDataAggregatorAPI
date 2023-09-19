@@ -190,6 +190,13 @@ exports.getEventById = async (req, res) => {
     try {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
+
+      if (!newEvent) {
+        newEvent = event;
+        newEvent.STAGE_TYPE = "CANCELLED";
+        newEvent.STAGE = "CANCELLED";
+        // newEvent.STAGE = "CANCELLED";
+      }
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
       let news = null;
