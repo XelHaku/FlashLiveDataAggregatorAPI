@@ -191,11 +191,16 @@ exports.getEventById = async (req, res) => {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
 
-      if (!newEvent) {
+      if (newEvent == 404) {
         newEvent = event;
         newEvent.STAGE_TYPE = "CANCELLED";
         newEvent.STAGE = "CANCELLED";
         // newEvent.STAGE = "CANCELLED";
+      } else if (!newEvent) {
+        return res.status(500).json({
+          status: "error",
+          message: "Event not found on Flashscore",
+        });
       }
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
