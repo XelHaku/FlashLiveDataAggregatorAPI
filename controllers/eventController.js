@@ -4,7 +4,7 @@
 const Event = require("../models/eventModel");
 const { EventById } = require("../flashLive/EventById");
 const { NewsByEventId } = require("../flashLive/NewsByEventId");
-
+const { VideosByEventId } = require("../flashLive/VideosByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 
 exports.getTournaments = async (req, res) => {
@@ -186,7 +186,7 @@ exports.getEventById = async (req, res) => {
     "event.lastUpdated < currentTime - 5 * 60",
     event.lastUpdated < currentTime - 5 * 60
   );
-  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
+  if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
     try {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
@@ -205,6 +205,7 @@ exports.getEventById = async (req, res) => {
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
       let news = null;
+      let Videos = null;
 
       try {
         news = await NewsByEventId(eventId);
@@ -216,6 +217,18 @@ exports.getEventById = async (req, res) => {
       if (news) {
         newEvent.NEWS = news;
       }
+
+      try {
+        Videos = await VideosByEventId(eventId);
+      } catch (error) {
+        console.error("Error fetching Video:", error);
+      }
+
+      // Add Video as a new property to newEvent
+      if (Videos) {
+        newEvent.VIDEOS = Videos;
+      }
+
       // console.log(newEvent);
       // Update the event data in the database using findOneAndUpdate method.
       const updatedEvent = await Event.findOneAndUpdate(

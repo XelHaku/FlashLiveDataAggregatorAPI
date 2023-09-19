@@ -1,6 +1,23 @@
 const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
+const VideosSchema = new Schema({
+  PROPERTY_LINK: { type: String, default: null },
+  PROPERTY_TIME: { type: Number, default: null }, // Using Number, assuming it's a timestamp. Adjust if needed.
+  PROPERTY_INCIDENT_TYPE: { type: String, default: null },
+  PROPERTY_TITLE: { type: String, default: null },
+  PROPERTY_SUBTITLE1: { type: String, default: null },
+  PROPERTY_SOURCE: { type: String, default: "YouTube" },
+  PROPERTY_IS_TOP: { type: Number, default: 1 }, // Using Number for binary flag. Consider using Boolean if appropriate.
+  PROPERTY_TITLE_SECONDARY: { type: String, default: "Match highlights" },
+  PROPERTY_IS_OFFICIAL: { type: Number, default: 1 }, // Using Number for binary flag. Consider using Boolean if appropriate.
+  IMAGES: [
+    {
+      HIGH: { type: String, required: true },
+      PROPERTY_IMAGE_URL: { type: String, required: true },
+    },
+  ],
+});
 const NewsSchema = new Schema({
   ID: { type: String, required: true },
   TITLE: { type: String, required: true },
@@ -90,6 +107,7 @@ const eventSchema = new Schema({
   INFO_NOTICE: { type: String, required: false },
   // Adding the NEWS array to the schema
   NEWS: [NewsSchema, (required = false)],
+  VIDEOS: [VideosSchema, (required = false)],
 });
 
 const Event = mongoose.model("Event", eventSchema);
