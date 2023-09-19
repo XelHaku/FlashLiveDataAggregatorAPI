@@ -140,14 +140,17 @@ exports.getEventById = async (req, res) => {
 
   // Query the database to find the event with the given eventId.
   // Using .lean() to get a plain JavaScript object instead of a Mongoose document for better performance.
-  const event = await Event.findOne({ EVENT_ID: eventId }).lean();
+  let event = await Event.findOne({ EVENT_ID: eventId }).lean();
 
   // If no event is found with the given ID, return a 404 Not Found response.
   if (!event) {
-    return res.status(404).json({
-      status: "Not Found",
-      message: "Event not found",
-    });
+    event = await EventById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        status: "Not Found",
+        message: "Event not found",
+      });
+    }
   }
 
   // Get the current time in seconds.
