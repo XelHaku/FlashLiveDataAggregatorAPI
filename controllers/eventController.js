@@ -3,6 +3,8 @@
 // const mongoose = require('mongoose');
 const Event = require("../models/eventModel");
 const { EventById } = require("../flashLive/EventById");
+const { NewsByEventId } = require("../flashLive/NewsByEventId");
+
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 
 exports.getTournaments = async (req, res) => {
@@ -145,11 +147,28 @@ exports.getEventById = async (req, res) => {
   // If no event is found with the given ID, return a 404 Not Found response.
   if (!event) {
     event = await EventById(eventId);
+    event.lastUpdated = 0;
     if (!event) {
       return res.status(404).json({
         status: "Not Found",
         message: "Event not found",
       });
+    } else {
+      const updatedEvent = await Event.findOneAndUpdate(
+        { EVENT_ID: event.EVENT_ID },
+        event,
+        {
+          upsert: true, // Create a new document if no matching document is found.
+          new: true, // Return the updated document after the update operation.
+          setDefaultsOnInsert: true, // Set default values if a new document is created.
+        }
+      );
+
+      // Remove unwanted keys from the updated event object.
+      if (updatedEvent) {
+        updatedEvent._id = undefined;
+        updatedEvent.__v = undefined;
+      }
     }
   }
 
@@ -167,45 +186,19 @@ exports.getEventById = async (req, res) => {
     "event.lastUpdated < currentTime - 5 * 60",
     event.lastUpdated < currentTime - 5 * 60
   );
-  if (
-    (!event.lastUpdated || event.lastUpdated < currentTime - 5 * 60) &&
-    !event.WINNER
-  ) {
+  if (!event.lastUpdated || event.lastUpdated < currentTime - 5 * 60) {
     try {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
       // console.log(newEvent);
       newEvent = scorePartValidation(newEvent);
       let news = null;
-      // let news = {
-      //   ID: "AZ8uUeEd",
-      //   TITLE:
-      //     "Berrettini blows by Hurkacz, becomes Italy's 1st Grand Slam finalist in 45 years",
-      //   LINK: "https://www.cbc.ca/sports/tennis/berrettini-hurkacz-djokovic-shapovalov-wimbeldon-roundup-july-9-1.6096085?cmp=rss",
-      //   PUBLISHED: 1625846794,
-      //   PROVIDER_NAME: "CBC.ca",
-      //   CATEGORY_NAME: "Pre-Match",
-      //   LINKS: [
-      //     {
-      //       IMAGE_VARIANT_ID: 38,
-      //       IMAGE_VARIANT_URL:
-      //         "https://omapi.sporttube.com/image_upload/2021/07/09/rO8vgo2Cf917VLe.jpg",
-      //     },
-      //     {
-      //       IMAGE_VARIANT_ID: 39,
-      //       IMAGE_VARIANT_URL:
-      //         "https://omapi.sporttube.com/image_upload/2021/07/09/0cochy9b5dwsHoD.jpg",
-      //     },
-      //     {
-      //       IMAGE_VARIANT_ID: 40,
-      //       IMAGE_VARIANT_URL:
-      //         "https://omapi.sporttube.com/image_upload/2021/07/09/Fpwc4ETO01u2nPa.jpg",
-      //     },
-      //   ],
-      // };
+
       try {
         news = await NewsByEventId(eventId);
-      } catch (error) {}
+      } catch (error) {
+        console.error("Error fetching news:", error);
+      }
 
       // Add news as a new property to newEvent
       if (news) {
