@@ -184,8 +184,8 @@ exports.getEventById = async (req, res) => {
   // if (
   //   currentTime > event.START_UTIME &&
 
-  // if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
-  if (true) {
+  if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
+    // if (true) {
     try {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
@@ -222,8 +222,16 @@ exports.getEventById = async (req, res) => {
           EVENT_ID: eventId,
         }));
 
-        // Save enriched news to the News collection
-        await NewsModel.insertMany(enrichedNews);
+        // Loop through each news item and check if it exists before inserting
+        for (let newsItem of enrichedNews) {
+          const existingNews = await NewsModel.findOne({ ID: newsItem.ID });
+
+          // If the news doesn't already exist, then save it
+          if (!existingNews) {
+            const newNews = new NewsModel(newsItem);
+            await newNews.save();
+          }
+        }
 
         // Add news as a new property to newEvent
         newEvent.NEWS = enrichedNews;
