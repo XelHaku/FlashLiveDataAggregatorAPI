@@ -44,7 +44,7 @@ async function updateEventById(_eventId) {
     // Fetch updated event data from an external source using the EventById function.
     let newEvent = await EventById(_eventId);
 
-    if (newEvent) {
+    if (newEvent && newEvent != 404) {
       // Update the event data in the database using findOneAndUpdate method.
       const updatedEvent = await Event.findOneAndUpdate(
         { EVENT_ID: _eventId },
