@@ -7,6 +7,7 @@ const { NewsByEventId } = require("../flashLive/NewsByEventId");
 const { VideosByEventId } = require("../flashLive/VideosByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 const NewsModel = require("../models/newsModel"); // Import the News model you created
+
 exports.getTournaments = async (req, res) => {
   const { sportId } = req.params;
   const { days } = req.params;
@@ -182,11 +183,9 @@ exports.getEventById = async (req, res) => {
 
   // if (
   //   currentTime > event.START_UTIME &&
-  console.log(
-    "event.lastUpdated < currentTime - 5 * 60",
-    event.lastUpdated < currentTime - 5 * 60
-  );
-  if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
+
+  // if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
+  if (true) {
     try {
       // Fetch updated event data from an external source using the EventById function.
       let newEvent = await EventById(eventId);
@@ -211,6 +210,23 @@ exports.getEventById = async (req, res) => {
         news = await NewsByEventId(eventId);
       } catch (error) {
         console.error("Error fetching news:", error);
+      }
+
+      if (news && Array.isArray(news)) {
+        // Add the additional fields to each news item
+        const enrichedNews = news.map((item) => ({
+          ...item,
+          SPORT: event.SPORT, // Assuming event has these properties
+          TOURNAMENT_ID: event.TOURNAMENT_ID,
+          COUNTRY_ID: event.COUNTRY_ID,
+          EVENT_ID: eventId,
+        }));
+
+        // Save enriched news to the News collection
+        await NewsModel.insertMany(enrichedNews);
+
+        // Add news as a new property to newEvent
+        newEvent.NEWS = enrichedNews;
       }
 
       // Add news as a new property to newEvent
