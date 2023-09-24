@@ -6,7 +6,7 @@ const { EventById } = require("../flashLive/EventById");
 const { NewsByEventId } = require("../flashLive/NewsByEventId");
 const { VideosByEventId } = require("../flashLive/VideosByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
-
+const NewsModel = require("../models/newsModel"); // Import the News model you created
 exports.getTournaments = async (req, res) => {
   const { sportId } = req.params;
   const { days } = req.params;
@@ -451,4 +451,43 @@ exports.getCountriesWithUpcomingEvents = async (req, res) => {
     status: "success getCountriesWithUpcomingEvents",
     data: countriesList,
   });
+};
+
+exports.getRecentNews = async (req, res) => {
+  try {
+    // Calculate the timestamp for 24 hours ago
+    const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+
+    // Fetch events from the last 24 hours
+    const events = await Event.find({
+      START_UTIME: { $gte: oneDayAgo },
+    }).lean();
+
+    let allNews = [];
+
+    // Extract recent news from these events
+    for (let event of events) {
+      if (event.NEWS && Array.isArray(event.NEWS)) {
+        const recentNews = event.NEWS.filter(
+          (news) => news.PUBLISHED >= oneDayAgo
+        );
+        allNews.push(...recentNews);
+      }
+    }
+
+    // Sort news based on the PUBLISHED timestamp in descending order
+    allNews.sort((a, b) => b.PUBLISHED - a.PUBLISHED);
+
+    // Return the sorted news as a response
+    return res.status(200).json({
+      status: "success",
+      data: allNews,
+    });
+  } catch (error) {
+    console.error("Error fetching recent news:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error fetching recent news",
+    });
+  }
 };
