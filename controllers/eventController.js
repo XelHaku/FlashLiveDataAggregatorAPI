@@ -222,14 +222,16 @@ exports.getEventById = async (req, res) => {
           EVENT_ID: eventId,
         }));
 
-        // Loop through each news item and check if it exists before inserting
+        // Loop through each news item and upsert it
         for (let newsItem of enrichedNews) {
-          const existingNews = await NewsModel.findOne({ ID: newsItem.ID });
-
-          // If the news doesn't already exist, then save it
-          if (!existingNews) {
-            const newNews = new NewsModel(newsItem);
-            await newNews.save();
+          try {
+            await NewsModel.updateOne(
+              { ID: newsItem.ID }, // filter
+              { $set: newsItem }, // update
+              { upsert: true } // options
+            );
+          } catch (error) {
+            console.error("Error upserting news item:", error);
           }
         }
 
