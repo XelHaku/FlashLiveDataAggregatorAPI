@@ -184,7 +184,7 @@ exports.getEventById = async (req, res) => {
   // if (
   //   currentTime > event.START_UTIME &&
 
-  if (!event.lastUpdated || event.lastUpdated > currentTime - 10 * 60) {
+  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
     // if (true) {
     try {
       // Fetch updated event data from an external source using the EventById function.
