@@ -1,12 +1,9 @@
 const SmartContractEvent = require("../models/SmartContractEventModel");
 
-exports.getEarnings = async (req, res) => {
+exports.getAllEventStakings = async (req, res) => {
   // Extract player from query params
   const { player } = req.query;
-  const { category } = req.query;
-  // const { eventId } = req.query;
-  if (!category) {
-  }
+
   // If player is not provided in the query params, send a bad request response
   if (!player) {
     return res.status(400).json({
@@ -14,26 +11,33 @@ exports.getEarnings = async (req, res) => {
       message: "Player parameter is missing from the query.",
     });
   }
-
   // Query the database using the player parameter
-
   let earningsList;
-  if (player && !category) {
+
+  // [
+  //   "Approval",
+  //   "Transfer",
+  //   "Accumulate",
+  //   "Commission",
+  //   "Earnings",
+  //   "EventClosed",
+  //   "StakeAdded",
+  //   "StakeCanceled",
+  //   "Swap",
+  //   "Approval",
+  //   "Transfer",
+  // ];
+
+  if (player) {
     earningsList = await SmartContractEvent.find({
-      EventName: "Earnings",
+      EventName: "StakeAdded",
       "Args.player": player,
-    }).lean();
-  } else if (player && category) {
-    earningsList = await SmartContractEvent.find({
-      EventName: "Earnings",
-      "Args.player": player,
-      "Args.category": category,
     }).lean();
   }
 
   res.status(200).json({
-    status: "success getEarnings",
+    status: "success getAllEventStakings",
     data: earningsList,
   });
 };
-exports.getEarnings = async (req, res) => {};
+exports.getAllEventStakings = async (req, res) => {};

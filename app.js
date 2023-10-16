@@ -10,7 +10,7 @@ const tournamentRouter = require("./routes/tournamentRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 
 const earningsRouter = require("./routes/earningsRoutes");
-
+const stakingsRouter = require("./routes/stakingsRouter");
 const app = express();
 app.use(cors());
 
@@ -38,7 +38,8 @@ app.use("/api/v1/country", countryRouter);
 app.use("/api/v1/tournament", tournamentRouter);
 app.use("/api/v1/news", newsRoutes);
 
+//
 app.use("/api/v1/earnings", earningsRouter);
-app.use("/api/v1/stakes", earningsRouter);
+app.use("/api/v1/stakes", stakingsRouter);
 
 module.exports = app;
