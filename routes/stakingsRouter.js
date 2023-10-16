@@ -16,5 +16,5 @@ const upcomingRouter = express.Router({ mergeParams: true });
 // Main route with primary path
 // router.route("/:tournamentId/:days").get(eventController.getEventsByTournament);
 // router.route("/:player").get(earningsController.getAllEventStakings);
-router.route("/").get(stakingController.getAllEventStakings);
+router.route("/").get(stakingController.getAllPlayerStakes);
 module.exports = router;

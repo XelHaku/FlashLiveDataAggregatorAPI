@@ -40,6 +40,6 @@ app.use("/api/v1/news", newsRoutes);
 
 //
 app.use("/api/v1/earnings", earningsRouter);
-app.use("/api/v1/stakes", stakingsRouter);
+// app.use("/api/v1/stakes", stakingsRouter);
 
 module.exports = app;

@@ -1,6 +1,6 @@
 const SmartContractEvent = require("../models/SmartContractEventModel");
 
-exports.getAllEventStakings = async (req, res) => {
+exports.getAllPlayerStakes = async (req, res) => {
   // Extract player from query params
   const { player } = req.query;
 
@@ -36,8 +36,8 @@ exports.getAllEventStakings = async (req, res) => {
   }
 
   res.status(200).json({
-    status: "success getAllEventStakings",
+    status: "success getAllPlayerStakes",
     data: earningsList,
   });
 };
-exports.getAllEventStakings = async (req, res) => {};
+exports.getAllPlayerStakes = async (req, res) => {};
