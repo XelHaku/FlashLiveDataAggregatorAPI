@@ -146,10 +146,10 @@ exports.getEventById = async (req, res) => {
   let event = await Event.findOne({ EVENT_ID: eventId }).lean();
 
   // If no event is found with the given ID, return a 404 Not Found response.
-  if (!event) {
+  if (event != null) {
     event = await EventById(eventId);
-    event.lastUpdated = 0;
-    if (!event) {
+    if (event != null) {
+      event.lastUpdated = 0;
       return res.status(404).json({
         status: "Not Found",
         message: "Event not found",
