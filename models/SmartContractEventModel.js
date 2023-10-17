@@ -20,6 +20,8 @@ const eventSchema = new mongoose.Schema({
     amountATON: String,
     category: String,
     sport: String,
+    team: String,
+
     startTime: String,
     tokenIn: String,
     tokenOut: String,
