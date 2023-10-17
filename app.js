@@ -10,7 +10,8 @@ const tournamentRouter = require("./routes/tournamentRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 
 const earningsRouter = require("./routes/earningsRoutes");
-const stakesRouter = require("./routes/stakesRouter");
+const stakesRouter = require("./routes/stakesRoutes");
+const walletRouter = require("./routes/walletRoutes");
 const app = express();
 app.use(cors());
 
@@ -31,6 +32,8 @@ app.get("/", (req, res) => {
   res.send("Welcome to Flash Data Aggregator!");
 });
 app.use("/api", limiter);
+
+app.use("/api/v1/wallet", walletRouter);
 
 app.use("/api/v1/sports", sportRouter);
 app.use("/api/v1/events", eventRouter);
