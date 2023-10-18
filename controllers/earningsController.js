@@ -188,3 +188,58 @@ exports.getStakeGraph = async (req, res) => {
     });
   }
 };
+
+exports.getCategorySumFromEarningsForPlayer = async (req, res) => {
+  // Extract player from query params
+  const { player } = req.query;
+  const { category } = req.query;
+  const { chainId } = req.query;
+  // const { eventId } = req.query;
+
+  if (!chainId) {
+    return res.status(400).json({
+      status: "error",
+      message: " ChainId parameter is missing from the query.",
+    });
+  }
+  if (!category) {
+  }
+  // If player is not provided in the query params, send a bad request response
+  if (!player) {
+    return res.status(400).json({
+      status: "error",
+      message: "Player parameter is missing from the query.",
+    });
+  }
+
+  try {
+    const result = await SmartContractEvent.aggregate([
+      {
+        $match: {
+          EventName: "Earnings",
+          "Args.player": player,
+        },
+      },
+      {
+        $group: {
+          _id: "$Args.category", // Group by category
+          totalAmountVUND: {
+            $sum: { $toDouble: "$Args.amountVUND" }, // Sum of amountVUND within each category
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      status: "success getCategorySumFromEarningsForPlayer",
+      data: result,
+    });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({
+      status: "error",
+      message:
+        "An error occurred while calculating category sums for Earnings.",
+    });
+  }
+};

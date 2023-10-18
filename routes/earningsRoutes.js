@@ -12,5 +12,15 @@ const topGladiatorsRouter = express.Router({ mergeParams: true });
 topGladiatorsRouter.get("/", earningsController.getTopGladiators);
 router.use("/topGladiators", topGladiatorsRouter);
 
+const CategorySumFromEarningsRouter = express.Router({ mergeParams: true });
+CategorySumFromEarningsRouter.get(
+  "/",
+  earningsController.getCategorySumFromEarningsForPlayer
+);
+router.use(
+  "/getCategorySumFromEarningsForPlayer",
+  CategorySumFromEarningsRouter
+);
+
 // router.route("/").get(earningsController.getEarningsByPlayer);
 module.exports = router;
