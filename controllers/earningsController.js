@@ -44,11 +44,11 @@ exports.getEarningsByPlayer = async (req, res) => {
     data: earningsList,
   });
 };
-
 exports.getTopGladiators = async (req, res) => {
+  const start = Math.floor(Date.now());
+
   try {
     const { chainId } = req.query;
-    // const { eventId } = req.query;
 
     if (!chainId) {
       return res.status(400).json({
@@ -59,70 +59,69 @@ exports.getTopGladiators = async (req, res) => {
     const chainIdNumber = parseInt(chainId, 10); // Convert the chainId string to a number
 
     // Extract the number of top gladiators to return from the query parameters
-    let gladiatorsQty;
-    if (req.query.gladiatorsQty) {
-      gladiatorsQty = parseInt(req.query.gladiatorsQty, 10); // Default to all if not provided or invalid
-    } else {
-      gladiatorsQty = 20;
-    }
-    // First, compute total staked amounts for each player
-    const stakedAmounts = await SmartContractEvent.aggregate([
+    const gladiatorsQty = req.query.gladiatorsQty
+      ? parseInt(req.query.gladiatorsQty, 10)
+      : 20;
+
+    // Combine the aggregation pipelines
+    const combinedData = await SmartContractEvent.aggregate([
       {
         $match: {
-          EventName: "StakeAdded",
           ChainId: chainIdNumber,
+          EventName: { $in: ["StakeAdded", "Earnings"] },
         },
       },
       {
         $group: {
           _id: "$Args.player",
           totalStaked: {
-            $sum: { $toDouble: "$Args.amountVUND" },
+            $sum: {
+              $cond: [
+                { $eq: ["$EventName", "StakeAdded"] },
+                { $toDouble: "$Args.amountVUND" },
+                0,
+              ],
+            },
           },
-        },
-      },
-    ]);
-
-    // Then, compute total earnings and total amountATON for each player
-    const earnings = await SmartContractEvent.aggregate([
-      {
-        $match: {
-          EventName: "Earnings",
-          ChainId: chainIdNumber,
-        },
-      },
-      {
-        $group: {
-          _id: "$Args.player",
           totalEarnings: {
-            $sum: { $toDouble: "$Args.amountVUND" },
+            $sum: {
+              $cond: [
+                { $eq: ["$EventName", "Earnings"] },
+                { $toDouble: "$Args.amountVUND" },
+                0,
+              ],
+            },
           },
           totalAmountATON: {
-            $sum: { $toDouble: "$Args.amountATON" }, // This line computes the sum of amountATON for each player
+            $sum: {
+              $cond: [
+                { $eq: ["$EventName", "Earnings"] },
+                { $toDouble: "$Args.amountATON" },
+                0,
+              ],
+            },
           },
         },
       },
+      {
+        $project: {
+          player: "$_id",
+          totalStaked: 1,
+          totalEarnings: 1,
+          totalAmountATON: 1,
+          roi: {
+            $cond: [
+              { $eq: ["$totalStaked", 0] },
+              0,
+              { $divide: ["$totalEarnings", "$totalStaked"] },
+            ],
+          },
+        },
+      },
+      { $sort: { roi: -1 } },
+      { $limit: gladiatorsQty },
     ]);
-
-    // Merge the arrays based on player and calculate ROI
-    let combinedData = stakedAmounts.map((stake) => {
-      const earningsData = earnings.find(
-        (earning) => earning._id === stake._id
-      ) || { totalEarnings: 0, totalAmountATON: 0 }; // Default totalAmountATON to 0 if not found
-      const roi = earningsData.totalEarnings / stake.totalStaked || 0;
-      return {
-        player: stake._id,
-        totalStaked: stake.totalStaked,
-        totalEarnings: earningsData.totalEarnings,
-        totalAmountATON: earningsData.totalAmountATON, // Add the computed totalAmountATON to the combinedData
-        roi: roi,
-      };
-    });
-
-    // Sort the array based on ROI
-    combinedData = combinedData
-      .sort((a, b) => b.roi - a.roi)
-      .slice(0, gladiatorsQty);
+    console.log("END: ", Math.floor(Date.now()) - start);
 
     res.status(200).json({
       status: "success getTopGladiators",
@@ -136,6 +135,7 @@ exports.getTopGladiators = async (req, res) => {
     });
   }
 };
+
 exports.getStakeGraph = async (req, res) => {
   try {
     // 1. Extract eventId and chainId from the request parameters:
