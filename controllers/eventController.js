@@ -150,10 +150,10 @@ exports.getEventById = async (req, res) => {
     event = await EventById(eventId);
     if (event != null) {
       event.lastUpdated = 0;
-      return res.status(404).json({
-        status: "Not Found",
-        message: "Event not found",
-      });
+      // return res.status(404).json({
+      //   status: "Not Found",
+      //   message: "Event not found",
+      // });
     } else {
       const updatedEvent = await Event.findOneAndUpdate(
         { EVENT_ID: event.EVENT_ID },

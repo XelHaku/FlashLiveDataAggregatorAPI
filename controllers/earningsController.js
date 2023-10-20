@@ -1,20 +1,27 @@
 const SmartContractEvent = require("../models/SmartContractEventModel");
+// Convert epoch (Unix timestamp) to human-readable date
+function epochToHumanDate(epoch) {
+  const date = new Date(epoch * 1000); // Convert from seconds to milliseconds
+  return date.toISOString(); // Get date in ISO 8601 format (e.g., "2023-10-17T10:30:00.000Z")
+}
+
+// Convert human-readable date to epoch (Unix timestamp)
+function humanDateToEpoch(humanDate) {
+  const date = new Date(humanDate);
+  return Math.floor(date.getTime() / 1000); // Convert to seconds and round down
+}
 
 exports.getEarningsByPlayer = async (req, res) => {
-  // Extract player from query params
-  const { player } = req.query;
-  const { category } = req.query;
-  const { chainId } = req.query;
-  // const { eventId } = req.query;
+  // Extract player, category, chainId, and _time from query params
+  const { player, category, chainId, _time } = req.query;
 
   if (!chainId) {
     return res.status(400).json({
       status: "error",
-      message: " ChainId parameter is missing from the query.",
+      message: "ChainId parameter is missing from the query.",
     });
   }
-  if (!category) {
-  }
+
   // If player is not provided in the query params, send a bad request response
   if (!player) {
     return res.status(400).json({
@@ -23,27 +30,55 @@ exports.getEarningsByPlayer = async (req, res) => {
     });
   }
 
-  // Query the database using the player parameter
+  try {
+    // Create a query object based on the provided parameters
+    const query = {
+      EventName: "Earnings",
+      "Args.player": player,
+    };
 
-  let earningsList;
-  if (player && !category) {
-    earningsList = await SmartContractEvent.find({
-      EventName: "Earnings",
-      "Args.player": player,
-    }).lean();
-  } else if (player && category) {
-    earningsList = await SmartContractEvent.find({
-      EventName: "Earnings",
-      "Args.player": player,
-      "Args.category": category,
-    }).lean();
+    if (category) {
+      query["Args.category"] = category;
+    }
+
+    if (_time !== "0") {
+      const resultDate = new Date();
+      resultDate.setDate(resultDate.getDate() - _time);
+
+      // console.log(humanDateToEpoch(resultDate));
+      // console.log(humanDateToEpoch(Date.now()));
+      // Use the provided Unix timestamp directly for filtering
+      query["DateTime"] = {
+        $gte: parseInt(humanDateToEpoch(resultDate)),
+        $lte: parseInt(humanDateToEpoch(Date.now())),
+      };
+      ``;
+    } else {
+      // If _time is "0", use the last 7 days
+      const last7DaysUnixTimestamp =
+        Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+      query["DateTime"] = {
+        $gte: last7DaysUnixTimestamp,
+        $lte: humanDateToEpoch(Date.now()),
+      };
+    }
+
+    // Use find to get full earnings records
+    const earningsList = await SmartContractEvent.find(query);
+
+    res.status(200).json({
+      status: "success getEarnings",
+      data: earningsList,
+    });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while fetching earnings data.",
+    });
   }
-
-  res.status(200).json({
-    status: "success getEarnings",
-    data: earningsList,
-  });
 };
+
 exports.getTopGladiators = async (req, res) => {
   const start = Math.floor(Date.now());
 
