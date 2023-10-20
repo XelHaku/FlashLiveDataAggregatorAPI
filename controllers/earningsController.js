@@ -13,7 +13,7 @@ function humanDateToEpoch(humanDate) {
 
 exports.getEarningsByPlayer = async (req, res) => {
   // Extract player, category, chainId, and _time from query params
-  const { player, category, chainId, _time } = req.query;
+  const { player, category, chainId, days } = req.query;
 
   if (!chainId) {
     return res.status(400).json({
@@ -41,11 +41,11 @@ exports.getEarningsByPlayer = async (req, res) => {
       query["Args.category"] = category;
     }
 
-    if (_time === "-1") {
-      // If _time is "-1", retrieve all events without time filtering
-    } else if (_time !== "0") {
+    if (days === "-1") {
+      // If days is "-1", retrieve all events without time filtering
+    } else if (days !== "0") {
       const resultDate = new Date();
-      resultDate.setDate(resultDate.getDate() - _time);
+      resultDate.setDate(resultDate.getDate() - days);
 
       // console.log(humanDateToEpoch(resultDate));
       // console.log(humanDateToEpoch(Date.now()));
@@ -56,7 +56,7 @@ exports.getEarningsByPlayer = async (req, res) => {
       };
       ``;
     } else {
-      // If _time is "0", use the last 7 days
+      // If days is "0", use the last 7 days
       const last7DaysUnixTimestamp =
         Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
       query["DateTime"] = {
