@@ -41,7 +41,9 @@ exports.getEarningsByPlayer = async (req, res) => {
       query["Args.category"] = category;
     }
 
-    if (_time !== "0") {
+    if (_time === "-1") {
+      // If _time is "-1", retrieve all events without time filtering
+    } else if (_time !== "0") {
       const resultDate = new Date();
       resultDate.setDate(resultDate.getDate() - _time);
 
