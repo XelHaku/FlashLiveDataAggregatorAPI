@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 /* eslint-disable no-restricted-syntax */
-const { getWeekEventsBySport } = require("./getWeekEventsBySport");
 const Sport = require("../models/sportModel");
 const Event = require("../models/eventModel");
 

@@ -1,11 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
-// const ck = require('ckey');
 const { EventListFlashLive } = require("./EventListFlashLive");
-// const { SportsFlashLive } = require('./SportsFlashLive');
-
-// const mongoose = require('mongoose');
-// const Sport = require('./models/sportModel');
 
 async function getWeekEventsBySport(_sport) {
   let events = [];
