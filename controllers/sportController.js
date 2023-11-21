@@ -1,6 +1,3 @@
-// const ck = require('ckey');
-
-// const mongoose = require('mongoose');
 const Sport = require("../models/sportModel");
 
 exports.getAllSports = async (req, res) => {
