@@ -12,6 +12,7 @@ const newsRoutes = require("./routes/newsRoutes");
 const earningsRouter = require("./routes/earningsRoutes");
 const stakesRouter = require("./routes/stakesRoutes");
 const walletRouter = require("./routes/walletRoutes");
+const networkRouter = require("./routes/networkRoutes");
 const app = express();
 app.use(cors());
 
@@ -40,6 +41,7 @@ app.use("/api/v1/events", eventRouter);
 app.use("/api/v1/country", countryRouter);
 app.use("/api/v1/tournament", tournamentRouter);
 app.use("/api/v1/news", newsRoutes);
+app.use("/api/v1/networks", networkRouter);
 
 //
 app.use("/api/v1/earnings", earningsRouter);

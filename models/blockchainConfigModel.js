@@ -5,7 +5,7 @@ const blockchainConfigSchema = new mongoose.Schema({
   rpcUrl: String,
   faucetLink: String,
   testnet: Boolean,
-  blockExplorer: Boolean,
+  blockExplorer: String,
   usdcAddress: String,
   usdcStartBlock: Number,
   usdtAddress: String,

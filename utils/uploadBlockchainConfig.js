@@ -20,9 +20,17 @@ async function uploadBlockchainConfig() {
     });
     console.log("DB connection successful!");
 
+    // const blockchainConfigParameters = await readJsonFile(
+    //   "./parameters/parameters421613.json"
+    // );
+
     const blockchainConfigParameters = await readJsonFile(
       "./parameters/parameters11155111.json"
     );
+
+    // const blockchainConfigParameters = await readJsonFile(
+    //   "./parameters/parameters31337.json"
+    // );
 
     // Check if a document with the same chainId already exists
     const existingConfig = await BlockchainConfigModel.findOne({
