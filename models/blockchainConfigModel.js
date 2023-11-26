@@ -24,6 +24,8 @@ const blockchainConfigSchema = new mongoose.Schema({
   swapStartBlock: Number,
   pvtAddress: String,
   pvtStartBlock: Number,
+  canvasAddress: String,
+  canvasStartBlock: Number,
 });
 
 const BlockchainConfig = mongoose.model(
