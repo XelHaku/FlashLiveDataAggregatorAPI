@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const blockchainConfigSchema = new mongoose.Schema({
+  name: String,
   chainId: Number,
   rpcUrl: String,
   faucetLink: String,
