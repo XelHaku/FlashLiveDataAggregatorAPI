@@ -18,10 +18,9 @@ console.log("DB connection successful!", ck.CONNECTION_STRING);
 
 updateUnfinishedEvents();
 getEvents();
-// cleanOldEvents(); delete 1 month old events and lastupdate > 24hours
 
-// Then run getEvents() every hour
-// setInterval(getEvents, 60 * 60 * 1000); // 60 minutes * 60 seconds * 1000 milliseconds
+// Then run getEvents every hour
+setInterval(getEvents, 60 * 60 * 1000); // 60 minutes * 60 seconds * 1000 milliseconds
 setInterval(updateUnfinishedEvents, 4 * 60 * 60 * 1000); // 60 minutes * 60 seconds * 1000 milliseconds
 
 app.listen(ck.PORT, () => {

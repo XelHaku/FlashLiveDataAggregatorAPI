@@ -110,7 +110,7 @@ exports.getTournamentsByCountry = async (req, res) => {
 
 /**
  * Fetches events by a given tournament and within a specified time range.
- * 
+ *
  * @param {Object} req - The request object. It should contain:
  *  - `params.tournamentId` (string): The ID of the desired tournament.
  *  - `params.days` (number): The number of days to look back from the current date.
@@ -122,35 +122,33 @@ exports.getEventsByTournament = async (req, res) => {
   const { tournamentId, days } = req.params;
 
   // Constants
-  const SECONDS_IN_A_DAY = 86400;  // Number of seconds in a day
+  const SECONDS_IN_A_DAY = 86400; // Number of seconds in a day
   const currentTime = Math.floor(Date.now() / 1000);
   const timeCutOff = currentTime - days * SECONDS_IN_A_DAY;
 
   // Fetch events that match the criteria
   let eventsList = await Event.aggregate([
-      {
-          $match: {
-              TOURNAMENT_ID: tournamentId,
-              START_UTIME: { $gt: timeCutOff }
-          }
-      }
+    {
+      $match: {
+        TOURNAMENT_ID: tournamentId,
+        START_UTIME: { $gt: timeCutOff },
+      },
+    },
   ]);
 
   // Remove unwanted fields from each event
-  eventsList = eventsList.map(event => {
-      delete event._id;
-      delete event.__v;
-      return event;
+  eventsList = eventsList.map((event) => {
+    delete event._id;
+    delete event.__v;
+    return event;
   });
 
   // Send the response
   res.status(200).json({
-      status: "success getEventsByTournament",
-      data: eventsList
+    status: "success getEventsByTournament",
+    data: eventsList,
   });
 };
-
-
 
 exports.getUpcomingEventsBySportId = async (req, res) => {
   const { sportId } = req.params;
@@ -220,10 +218,10 @@ exports.getUpcomingEventsBySportIdAndCountryId = async (req, res) => {
       return res.status(404).json({
         status: "Not Found",
         message:
-        "No upcoming events found for the specified sportId and countryId",
+          "No upcoming events found for the specified sportId and countryId",
       });
     }
-    
+
     // Remove unwanted keys from the upcoming events array.
     const cleanedUpcomingEvents = upcomingEvents.map((event) => {
       event._id = undefined;
@@ -331,27 +329,27 @@ exports.getRecentNews = async (req, res) => {
   try {
     // Calculate the timestamp for 24 hours ago
     const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
-    
+
     // Fetch events from the last 24 hours
     const events = await Event.find({
       START_UTIME: { $gte: oneDayAgo },
     }).lean();
-    
+
     let allNews = [];
-    
+
     // Extract recent news from these events
     for (let event of events) {
       if (event.NEWS && Array.isArray(event.NEWS)) {
         const recentNews = event.NEWS.filter(
           (news) => news.PUBLISHED >= oneDayAgo
-          );
+        );
         allNews.push(...recentNews);
       }
     }
-    
+
     // Sort news based on the PUBLISHED timestamp in descending order
     allNews.sort((a, b) => b.PUBLISHED - a.PUBLISHED);
-    
+
     // Return the sorted news as a response
     return res.status(200).json({
       status: "success",
@@ -364,18 +362,14 @@ exports.getRecentNews = async (req, res) => {
       message: "Error fetching recent news",
     });
   }
-}
-
-
-
+};
 
 // TODO
-
 
 // getEventsByList function
 exports.getEventsByList = async (req, res) => {
   const { eventIdList } = req.query;
-  
+
   // Validate eventIdList
   if (!Array.isArray(eventIdList)) {
     return res.status(400).json({
@@ -385,174 +379,49 @@ exports.getEventsByList = async (req, res) => {
   }
 
   try {
-    const events = await Promise.all(eventIdList.map(eventId => updateEvent(eventId)));
-    const validEvents = events.filter(event => event !== null);
-    
-      return res.status(200).json({
-        status: "success",
-        data: validEvents,
+    const events = await Promise.all(
+      eventIdList.map((eventId) => updateEvent(eventId))
+    );
+    const validEvents = events.filter((event) => event !== null);
+
+    return res.status(200).json({
+      status: "success",
+      data: validEvents,
+    });
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+};
+
+// getEventById function using the common updateEvent function
+exports.getEventById = async (req, res) => {
+  const { eventId } = req.params;
+  try {
+    const event = await updateEvent(eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        status: "Not Found",
+        message: "Event not found",
       });
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      return res.status(500).json({
-          status: "error",
-          message: "Internal server error",
-        });
-      }
-    };
-    
-    // getEventById function using the common updateEvent function
-    exports.getEventById = async (req, res) => {
-      const { eventId } = req.params;
-      try {
-        const event = await updateEvent(eventId);
-        
-        if (!event) {
-          return res.status(404).json({
-            status: "Not Found",
-            message: "Event not found",
-          });
-        }
+    }
 
-        return res.status(200).json({
-          status: "success",
-          data: event,
-        });
-      } catch (error) {
-        console.error("Error in getEventById:", error);
-        return res.status(500).json({
-          status: "error",
-          message: "Error updating event",
-        });
-      }
-    };
-
-
-
-
-
-// TODO
-   /**
-     * Fetches a single event by its ID.
-     * If not found in the database, attempts to find it in an external source (Flashscore).
-     * Updates the event if certain conditions are met.
-    *
-    * @param {Object} req - The request object. Expected to contain:
-    *  - `params.eventId` (string): The ID of the desired event.
-    * @param {Object} res - The response object.
-    * @returns {Object} - Response with the event data.
-    */
-   exports.getEventById = async (req, res) => {
-     const { eventId } = req.params;
-     
-     // Fetch event from database
-     let event = await Event.findOne({ EVENT_ID: eventId }).lean();
-     
-     // If not found in database, attempt to fetch from Flashscore
-     if (!event) {
-       event = await EventById(eventId);
-       if (!event) {
-         return res.status(404).json({
-           status: "Not Found in Database nor Flashscore",
-           message: "Event not found",
-          });
-        }
-        
-        // Insert the newly fetched event into the database
-        await Event.findOneAndUpdate(
-          { EVENT_ID: eventId },
-          event,
-          {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true,
-          }
-          );
-        }
-        
-        const currentTime = Math.floor(Date.now() / 1000);
-        
-        // Check if event needs to be updated (based on lastUpdated time)
-        if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
-          try {
-              let newEvent = await EventById(eventId);
-              if (newEvent == 404) {
-                newEvent = { ...event, STAGE_TYPE: "CANCELLED", STAGE: "CANCELLED" };
-              } else if (!newEvent) {
-                return res.status(500).json({
-                  status: "error",
-                  message: "Event not found on Flashscore",
-                });
-              }
-              newEvent = scorePartValidation(newEvent);
-              
-              // Fetch additional details for the event
-              const [news, videos] = await Promise.all([
-                NewsByEventId(eventId).catch(error => { console.error("Error fetching news:", error); return null; }),
-                VideosByEventId(eventId).catch(error => { console.error("Error fetching Video:", error); return null; })
-              ]);
-              
-              if (news && Array.isArray(news)) {
-                const enrichedNews = news.map(item => ({
-                  ...item,
-                  SPORT: event.SPORT,
-                  TOURNAMENT_ID: event.TOURNAMENT_ID,
-                  COUNTRY_ID: event.COUNTRY_ID,
-                  EVENT_ID: eventId,
-                }));
-                
-                for (let newsItem of enrichedNews) {
-                      await NewsModel.updateOne(
-                        { ID: newsItem.ID },
-                        { $set: newsItem },
-                        { upsert: true }
-                        );
-                      }
-                      newEvent.NEWS = enrichedNews;
-                    }
-                    
-                    if (videos) {
-                      newEvent.VIDEOS = videos;
-                    }
-                    
-                    // Update the event in the database
-                    const updatedEvent = await Event.findOneAndUpdate(
-                      { EVENT_ID: eventId },
-                  newEvent,
-                  {
-                    upsert: true,
-                    new: true,
-                    setDefaultsOnInsert: true,
-                  }
-              );
-              
-              // Remove unwanted keys
-              updatedEvent._id = undefined;
-              updatedEvent.__v = undefined;
-              
-              return res.status(200).json({
-                status: "success getEventById",
-                data: updatedEvent,
-              });
-          } catch (error) {
-              console.error("Error updating event:", error);
-              return res.status(500).json({
-                status: "error",
-                  message: "Error updating event",
-                });
-              }
-            }
-            
-            // Remove unwanted keys from the event object
-            event._id = undefined;
-            event.__v = undefined;
-            
-            return res.status(200).json({
-              status: "success getEventById",
-          data: event,
-        });
-    };
-
+    return res.status(200).json({
+      status: "success",
+      data: event,
+    });
+  } catch (error) {
+    console.error("Error in getEventById:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error updating event",
+    });
+  }
+};
 /**
  * Updates an individual event by its ID.
  * Fetches the event from the database or an external source (Flashscore).
@@ -567,75 +436,58 @@ async function updateEvent(eventId) {
 
   // If not found in the database, try fetching from an external source (Flashscore)
   if (!event) {
-      event = await EventById(eventId);
-      // If still not found, return null
-      if (!event) return null;
+    event = await EventById(eventId);
+    // If still not found, return null
+    if (!event || event === 404) return null;
 
-      // If found, create a new event in the database
-      await Event.create(event);
+    // If found, create a new event in the database
+    event = await Event.create(event);
   }
 
   const currentTime = Math.floor(Date.now() / 1000);
 
   // Check if the event needs to be updated based on the lastUpdated timestamp
   if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
-      // Fetch the latest event details from an external source
-      let newEvent = await EventById(eventId);
+    // Fetch the latest event details from an external source
+    let newEvent = await EventById(eventId);
 
-      // Handle cases where the event is not found or marked as cancelled
-      if (newEvent == 404) {
-          newEvent = { ...event, STAGE_TYPE: "CANCELLED", STAGE: "CANCELLED" };
-      } else if (!newEvent) {
-          return null;
-      }
-
-      // Apply any necessary transformations or validations to the event data
-      newEvent = scorePartValidation(newEvent);
-
-      // Optionally fetch additional details (like news and videos)
-      // and attach them to the event object
-      const [news, videos] = await Promise.all([
-          NewsByEventId(eventId).catch(error => { console.error("Error fetching news:", error); return null; }),
-          VideosByEventId(eventId).catch(error => { console.error("Error fetching Video:", error); return null; })
-      ]);
-
-      if (news && Array.isArray(news)) {
-          // Process and update news items related to the event
-          const enrichedNews = news.map(item => ({
-              ...item,
-              SPORT: event.SPORT,
-              TOURNAMENT_ID: event.TOURNAMENT_ID,
-              COUNTRY_ID: event.COUNTRY_ID,
-              EVENT_ID: eventId,
-          }));
-
-          for (let newsItem of enrichedNews) {
-              await NewsModel.updateOne(
-                  { ID: newsItem.ID },
-                  { $set: newsItem },
-                  { upsert: true }
-              );
-          }
-          newEvent.NEWS = enrichedNews;
-      }
-
-      if (videos) {
-          // Attach video data to the event object
-          newEvent.VIDEOS = videos;
-      }
-
-      // Update the event in the database with the new data
+    // Handle cases where the event is not found or marked as cancelled
+    if (newEvent === 404 || !newEvent) {
+      // Update the existing event to indicate it is cancelled if not found
       await Event.findOneAndUpdate(
-          { EVENT_ID: eventId },
-          newEvent,
-          {
-              upsert: true,
-              new: true,
-              setDefaultsOnInsert: true,
-          }
+        { EVENT_ID: eventId },
+        { STAGE_TYPE: "CANCELLED", STAGE: "CANCELLED" },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true,
+        }
       );
+      return null;
+    }
+
+    newEvent = scorePartValidation(newEvent);
+
+    // Process and update news and videos
+    const [news, videos] = await Promise.all([
+      NewsByEventId(eventId).catch((error) =>
+        console.error("Error fetching news:", error)
+      ),
+      VideosByEventId(eventId).catch((error) =>
+        console.error("Error fetching Video:", error)
+      ),
+    ]);
+
+    if (news) newEvent.NEWS = news;
+    if (videos) newEvent.VIDEOS = videos;
+
+    // Update the event in the database with the new data
+    await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+    });
   }
 
-  // Return the updated event object
   return event;
 }

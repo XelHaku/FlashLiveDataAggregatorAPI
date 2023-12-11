@@ -12,6 +12,11 @@ upcomingRouter.get(
 );
 router.use("/upcoming", upcomingRouter);
 
+// Auxiliary route as a child of the main route
+const listRouter = express.Router({ mergeParams: true });
+listRouter.get("/", eventController.getEventsByList);
+router.use("/list", listRouter);
+
 // Main route with primary path
 router.route("/:tournamentId/:days").get(eventController.getEventsByTournament);
 router.route("/:eventId").get(eventController.getEventById);
