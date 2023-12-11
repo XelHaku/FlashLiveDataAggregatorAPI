@@ -368,10 +368,10 @@ exports.getRecentNews = async (req, res) => {
 
 // getEventsByList function
 exports.getEventsByList = async (req, res) => {
-  const { eventIdList } = req.query;
+  const { id } = req.query;
 
-  // Validate eventIdList
-  if (!Array.isArray(eventIdList)) {
+  // Validate id
+  if (!Array.isArray(id)) {
     return res.status(400).json({
       status: "error",
       message: "Invalid event ID list",
@@ -379,9 +379,7 @@ exports.getEventsByList = async (req, res) => {
   }
 
   try {
-    const events = await Promise.all(
-      eventIdList.map((eventId) => updateEvent(eventId))
-    );
+    const events = await Promise.all(id.map((eventId) => updateEvent(eventId)));
     const validEvents = events.filter((event) => event !== null);
 
     return res.status(200).json({
