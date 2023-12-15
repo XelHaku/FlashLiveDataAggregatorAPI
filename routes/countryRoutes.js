@@ -1,9 +1,9 @@
 const express = require("express");
-const eventController = require("../controllers/eventController");
+const countryController = require("../controllers/countryController");
 
 const router = express.Router();
 
-router.route("/").get(eventController.getCountries);
-router.route("/:sportId").get(eventController.getCountriesWithUpcomingEvents);
+router.route("/").get(countryController.getCountries);
+// router.route("/:sportId").get(countryController.getCountriesWithUpcomingcountrys);
 
 module.exports = router;

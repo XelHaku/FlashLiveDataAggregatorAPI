@@ -34,14 +34,12 @@ async function EventById(eventId) {
 
     return event;
   } catch (error) {
-    console.error(error.response.status);
+    console.log(error.response.status);
     if (error.response.status === 404) {
       return 404;
     }
     return null;
   }
 }
-
-// EventListFlashLive(6);
 
 module.exports = { EventById };
