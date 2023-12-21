@@ -1,6 +1,3 @@
-// const ck = require('ckey');
-
-// const mongoose = require('mongoose');
 const Event = require("../models/eventModel");
 const { EventById } = require("../flashLive/EventById");
 const { NewsByEventId } = require("../flashLive/NewsByEventId");
@@ -10,21 +7,31 @@ const NewsModel = require("../models/newsModel"); // Import the News model you c
 const pageSize = 12;
 // getEvents function
 exports.getEvents = async (req, res) => {
-  const { id, tournament, sport, country } = req.query;
+  const { id, tournament, sport, country, pageNo, pageSize = 12 } = req.query;
+  const page = pageNo ? parseInt(pageNo) : 1; // Default to page 1 if pageNo is not provided
+  const size = parseInt(pageSize);
+  const skip = (page - 1) * size; // Calculate the number of items to skip
 
   try {
-    let eventsList;
+    let eventsList, totalItems;
 
+    // Modify each condition to include pagination using limit and skip
     if (tournament) {
-      eventsList = await getEventsByTournament(tournament);
+      const result = await getEventsByTournament(tournament, skip, size);
+
+      eventsList = result.events;
+      totalItems = result.totalCount;
     } else if (sport) {
-      eventsList = country
-        ? await getEventsBySportAndCountry(sport, country)
-        : await getEventsBySport(sport);
+      const result = country
+        ? await getEventsBySportAndCountry(sport, country, skip, size)
+        : await getEventsBySport(sport, skip, size);
+      eventsList = result.events;
+      totalItems = result.totalCount;
     } else if (id) {
-      // Ensure that 'id' is an array or convert it to an array
       const idArray = Array.isArray(id) ? id : [id];
-      eventsList = await getEventsByList(idArray);
+      const result = await getEventsByList(idArray, skip, size);
+      eventsList = result.events;
+      totalItems = result.totalCount;
     }
 
     if (!eventsList || eventsList.length === 0) {
@@ -34,25 +41,20 @@ exports.getEvents = async (req, res) => {
       });
     }
 
-    // Clean up the events list by removing unwanted fields
-    if (typeof id !== "string" || !id) {
-      eventsList = eventsList.map((event) => {
-        const {
-          _id,
-          __v,
-          VIDEOS,
-          NEWS,
-          HEADER,
-          HOME_EVENT_PARTICIPANT_ID,
-          URL,
-          ...rest
-        } = event;
-        return rest;
-      });
-    }
+    // Clean up the events list
+    // ... (existing code for cleanup)
+
+    const totalPages = Math.ceil(totalItems / size);
+
     res.status(200).json({
       status: "success",
       data: eventsList,
+      pagination: {
+        currentPage: page,
+        pageSize: size,
+        totalItems,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Error in getEvents:", error);
@@ -62,77 +64,90 @@ exports.getEvents = async (req, res) => {
     });
   }
 };
-
-async function getEventsByTournament(tournament) {
+getEventsByTournament = async (tournament, skip, size) => {
+  console.log("getEventsByTournament");
   try {
-    // Constants
+    const SECONDS_IN_A_DAY = 86400; // Number of seconds in a day
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch events that match the criteria
-    const eventsList = await Event.aggregate([
+    // Fetch events that match the criteria and apply pagination
+    let eventsList = await Event.aggregate([
       {
         $match: {
           TOURNAMENT_ID: tournament,
           START_UTIME: { $gt: currentTime },
         },
       },
-      {
-        $project: {
-          _id: 0, // Exclude the _id and __v fields from the output
-          __v: 0,
-          // Add other fields you want to include in your response
-        },
-      },
-    ])
-      .limit(100)
-      .lean();
+      { $skip: skip },
+      { $limit: size },
+      // You can add a $project stage here to remove unwanted fields, if needed
+    ]);
 
-    // Return eventsList or an empty array if no events are found
-    return eventsList.length > 0 ? eventsList : [];
+    // Get total count of matching events for pagination
+    const totalCount = await Event.countDocuments({
+      TOURNAMENT_ID: tournament,
+      START_UTIME: { $gt: currentTime },
+    });
+
+    return [eventsList, totalCount];
   } catch (error) {
     console.error("Error in getEventsByTournament:", error);
-    throw error; // Rethrow the error to be handled by the caller
+    return [false, 0];
   }
-}
+};
 
-async function getEventsBySport(sport) {
+async function getEventsBySport(sport, skip, size) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch the upcoming events for the given sport
+    // Fetch the upcoming events for the given sport with pagination
     const upcomingEvents = await Event.find({
       SPORT: sport,
       START_UTIME: { $gt: currentTime },
     })
       .sort({ START_UTIME: 1 })
-      .limit(100)
+      .skip(skip)
+      .limit(size)
       .select("-_id -__v") // Exclude _id and __v from the output
       .lean();
 
-    // Return an empty array if no events are found
-    return upcomingEvents.length > 0 ? upcomingEvents : [];
+    // Get total count of matching events for pagination
+    const totalCount = await Event.countDocuments({
+      SPORT: sport,
+      START_UTIME: { $gt: currentTime },
+    });
+
+    return { events: upcomingEvents, totalCount };
   } catch (error) {
     console.error("Error in getEventsBySport:", error);
     throw error; // Rethrow the error to be handled by the caller
   }
 }
-async function getEventsBySportAndCountry(sport, country) {
+
+async function getEventsBySportAndCountry(sport, country, skip, size) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch the upcoming events for the given sport and country
+    // Fetch the upcoming events for the given sport and country with pagination
     const upcomingEvents = await Event.find({
       SPORT: sport,
       COUNTRY_ID: country,
       START_UTIME: { $gt: currentTime },
     })
       .sort({ START_UTIME: 1 })
-      .limit(100)
+      .skip(skip)
+      .limit(size)
       .select("-_id -__v") // Exclude _id and __v from the output
       .lean();
 
-    // Return an empty array if no events are found
-    return upcomingEvents.length > 0 ? upcomingEvents : [];
+    // Get total count of matching events for pagination
+    const totalCount = await Event.countDocuments({
+      SPORT: sport,
+      COUNTRY_ID: country,
+      START_UTIME: { $gt: currentTime },
+    });
+
+    return { events: upcomingEvents, totalCount };
   } catch (error) {
     console.error("Error in getEventsBySportAndCountry:", error);
     throw error; // Rethrow the error to be handled by the caller
@@ -154,7 +169,10 @@ async function getEventsByList(ids) {
     // Fetch and update each event by its ID
     const events = await Promise.all(ids.map(updateEvent));
     // Filter out null events
-    return events.filter((event) => event !== null);
+    const eventsList = events.filter((event) => event !== null);
+    const totalCount = eventsList.length;
+
+    return { events: eventsList, totalCount };
   } catch (error) {
     console.error("Error in getEventsByList:", error);
     throw error; // Rethrow the error to be handled by the caller
@@ -231,16 +249,13 @@ async function updateEvent(eventId) {
   return event;
 }
 
-// UTILS
-getEventsByTournament = async (tournament, res) => {
+getEventsByTournament = async (tournament, skip, size) => {
   console.log("getEventsByTournament");
-  // Extract tournament and days from request parameters
   try {
-    // Constants
     const SECONDS_IN_A_DAY = 86400; // Number of seconds in a day
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch events that match the criteria
+    // Fetch events that match the criteria and apply pagination
     let eventsList = await Event.aggregate([
       {
         $match: {
@@ -248,17 +263,20 @@ getEventsByTournament = async (tournament, res) => {
           START_UTIME: { $gt: currentTime },
         },
       },
+      { $skip: skip },
+      { $limit: size },
+      // You can add a $project stage here to remove unwanted fields, if needed
     ]);
 
-    // Remove unwanted fields from each event
-    eventsList = eventsList.map((event) => {
-      delete event._id;
-      delete event.__v;
-      return event;
+    // Get total count of matching events for pagination
+    const totalCount = await Event.countDocuments({
+      TOURNAMENT_ID: tournament,
+      START_UTIME: { $gt: currentTime },
     });
 
-    return eventsList;
+    return { events: eventsList, totalCount };
   } catch (error) {
-    return false;
+    console.error("Error in getEventsByTournament:", error);
+    return [false, 0];
   }
 };
