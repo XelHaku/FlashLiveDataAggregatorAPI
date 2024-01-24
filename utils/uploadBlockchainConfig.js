@@ -21,8 +21,12 @@ async function uploadBlockchainConfig() {
     console.log("DB connection successful!");
 
     const blockchainConfigParameters = await readJsonFile(
-      "./parameters/parameters421614.json"
+      "./parameters/parameters80001.json"
     );
+
+    // const blockchainConfigParameters = await readJsonFile(
+    //   "./parameters/parameters421614.json"
+    // );
 
     // const blockchainConfigParameters = await readJsonFile(
     //   "./parameters/parameters11155111.json"
