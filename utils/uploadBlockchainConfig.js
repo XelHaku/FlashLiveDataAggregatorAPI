@@ -29,6 +29,10 @@ async function uploadBlockchainConfig() {
     // );
 
     // const blockchainConfigParameters = await readJsonFile(
+    //   "./parameters/parameters421614.json"
+    // );
+
+    // const blockchainConfigParameters = await readJsonFile(
     //   "./parameters/parameters11155111.json"
     // );
 
