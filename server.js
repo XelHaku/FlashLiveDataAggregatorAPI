@@ -16,7 +16,7 @@ mongoose
   .then(() => console.log("DB connection successful!"));
 console.log("DB connection successful!", ck.CONNECTION_STRING);
 
-// updateUnfinishedEvents();
+updateUnfinishedEvents();
 getEvents();
 
 // Then run getEvents every hour

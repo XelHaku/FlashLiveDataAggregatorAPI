@@ -7,14 +7,45 @@ const { scorePartValidation } = require("./scorePartValidation");
 
 async function getEvents() {
   try {
-    const sportsList = await Sport.find({ AVAILABLE: true });
+    const sportsList = [
+      { id: 1, name: "Football" },
+      { id: 2, name: "Tennis" },
+      { id: 3, name: "Basketball" },
+      { id: 4, name: "Hockey" },
+      { id: 5, name: "American Football" },
+      { id: 6, name: "Baseball" },
+      { id: 7, name: "Handball" },
+      { id: 8, name: "Rugby Union" },
+      { id: 9, name: "Floorball" },
+      { id: 10, name: "Bandy" },
+      { id: 11, name: "Futsal" },
+      { id: 12, name: "Volleyball" },
+      { id: 13, name: "Cricket" },
+      { id: 14, name: "Darts" },
+      { id: 15, name: "Snooker" },
+      { id: 16, name: "Boxing" },
+      { id: 17, name: "Beach Volleyball" },
+      { id: 18, name: "Aussie Rules" },
+      { id: 19, name: "Rugby League" },
+      { id: 21, name: "Badminton" },
+      { id: 22, name: "Water Polo" },
+      { id: 23, name: "Golf" },
+      { id: 24, name: "Field Hockey" },
+      { id: 25, name: "Table Tennis" },
+      { id: 26, name: "Beach Football" },
+      { id: 28, name: "MMA" },
+      { id: 29, name: "Netball" },
+      { id: 30, name: "Pesapallo" },
+      { id: 36, name: "Esports" },
+      { id: 42, name: "Kabadi" },
+    ];
+
     for (const sportItem of sportsList) {
       console.log(sportItem);
 
       // eslint-disable-next-line no-await-in-loop
-      const events = await getWeekEventsBySport(sportItem.ID);
+      const events = await getWeekEventsBySport(sportItem.id);
       for (let event of events) {
-        // console.log(event);
         event = scorePartValidation(event);
 
         try {
@@ -28,16 +59,16 @@ async function getEvents() {
               setDefaultsOnInsert: true,
             }
           );
-          // console.log("Updated or created event:", updatedEvent);
+          console.log("Updated or created event:", updatedEvent);
         } catch (error) {
-          console.error("Error:", error, event);
+          console.error("Error updating event:", error, event);
         }
       }
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching sports events:", error);
   } finally {
-    // mongoose.connection.close();
+    // Optional: mongoose.connection.close();
   }
 }
 
