@@ -196,6 +196,9 @@ async function updateEvent(eventId) {
     event = await EventById(eventId);
     // If still not found, return null
     if (!event || event === 404) return null;
+    // Ensure required fields are included
+    if (!event.HEADER) event.HEADER = "Default Header"; // Provide a default value or fetch it appropriately
+    if (!event.NAME) event.NAME = "Default Name"; // Provide a default value or fetch it appropriately
 
     // If found, create a new event in the database
     event = await Event.create(event);
