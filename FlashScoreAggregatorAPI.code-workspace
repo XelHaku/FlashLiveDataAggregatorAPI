@@ -5,7 +5,7 @@
     }
   ],
   "settings": {
-    "workbench.colorTheme": "Aura Dark",
+    "workbench.colorTheme": "GitHub Dark Default",
     "workbench.colorCustomizations": {
       "activityBar.activeBackground": "#65c89b",
       "activityBar.background": "#65c89b",
