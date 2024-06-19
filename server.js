@@ -11,7 +11,7 @@ mongoose
   .connect(ck.CONNECTION_STRING, {
     useNewUrlParser: true,
     // useCreateIndex: true,
-    dbName: "ArenatonDB",
+    dbName: "FlashDataAggregatorDB",
   })
   .then(() => console.log("DB connection successful!"));
 console.log("DB connection successful!", ck.CONNECTION_STRING);

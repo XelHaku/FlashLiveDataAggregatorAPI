@@ -8,8 +8,11 @@ docker build -t flash-data-aggregator-api .
 docker login
 docker images
 
+docker run -d --env-file .env -p 3000:3000 xelhaku/arenaton:latest
 
- docker tag flash-data-aggregator-api xelhaku/flash-data-aggregator-api:latest
-docker push xelhaku/flash-data-aggregator-api:latest
-docker pull xelhaku/flash-data-aggregator-api
+
+
+docker build -t xelhaku/flash-data-aggregator-api:latest .
+docker tag xelhaku/flash-data-aggregator-api:latest registry.digitalocean.com/trebuchet-container-registry/xelhaku/flash-data-aggregator-api:latest
+docker push registry.digitalocean.com/trebuchet-container-registry/xelhaku/flash-data-aggregator-api:latest
 ```
