@@ -64,6 +64,8 @@ exports.getEvents = async (req, res) => {
     });
   }
 };
+
+
 getEventsByTournament = async (tournament, skip, size) => {
   console.log("getEventsByTournament");
   try {

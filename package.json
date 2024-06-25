@@ -29,7 +29,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-rate-limit": "^6.11.2",
-    "mongoose": "^7.6.13",
+    "mongoose": "^7.7.0",
     "morgan": "^1.10.0",
     "nodemon": "^2.0.22"
   },
@@ -38,10 +38,10 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^8.10.0",
     "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-jsx-a11y": "^6.9.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-react": "^7.34.2",
+    "eslint-plugin-react": "^7.34.3",
     "prettier": "^2.8.8"
   }
 }
