@@ -7,29 +7,31 @@ const NewsModel = require("../models/newsModel"); // Import the News model you c
 const pageSize = 12;
 // getEvents function
 exports.getEvents = async (req, res) => {
-  const { id, tournament, sport, country, pageNo, pageSize = 12 } = req.query;
+  const { id, tournament, sport, country, pageNo, sort = 'asc', pageSize = 12 } = req.query;
   const page = pageNo ? parseInt(pageNo) : 1; // Default to page 1 if pageNo is not provided
   const size = parseInt(pageSize);
   const skip = (page - 1) * size; // Calculate the number of items to skip
 
+  // Define the sort order
+  const sortOrder = sort.toLowerCase() === 'desc' ? -1 : 1;
+
   try {
     let eventsList, totalItems;
 
-    // Modify each condition to include pagination using limit and skip
+    // Modify each condition to include pagination using limit, skip, and sort
     if (tournament) {
-      const result = await getEventsByTournament(tournament, skip, size);
-
+      const result = await getEventsByTournament(tournament, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
     } else if (sport) {
       const result = country
-        ? await getEventsBySportAndCountry(sport, country, skip, size)
-        : await getEventsBySport(sport, skip, size);
+        ? await getEventsBySportAndCountry(sport, country, skip, size, sortOrder)
+        : await getEventsBySport(sport, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
     } else if (id) {
       const idArray = Array.isArray(id) ? id : [id];
-      const result = await getEventsByList(idArray, skip, size);
+      const result = await getEventsByList(idArray, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
     }
@@ -40,9 +42,6 @@ exports.getEvents = async (req, res) => {
         message: "No events found",
       });
     }
-
-    // Clean up the events list
-    // ... (existing code for cleanup)
 
     const totalPages = Math.ceil(totalItems / size);
 
@@ -64,12 +63,9 @@ exports.getEvents = async (req, res) => {
     });
   }
 };
-
-
-getEventsByTournament = async (tournament, skip, size) => {
+async function getEventsByTournament(tournament, skip, size, sortOrder) {
   console.log("getEventsByTournament");
   try {
-    const SECONDS_IN_A_DAY = 86400; // Number of seconds in a day
     const currentTime = Math.floor(Date.now() / 1000);
 
     // Fetch events that match the criteria and apply pagination
@@ -80,9 +76,9 @@ getEventsByTournament = async (tournament, skip, size) => {
           START_UTIME: { $gt: currentTime },
         },
       },
+      { $sort: { START_UTIME: sortOrder } },
       { $skip: skip },
       { $limit: size },
-      // You can add a $project stage here to remove unwanted fields, if needed
     ]);
 
     // Get total count of matching events for pagination
@@ -91,14 +87,13 @@ getEventsByTournament = async (tournament, skip, size) => {
       START_UTIME: { $gt: currentTime },
     });
 
-    return [eventsList, totalCount];
+    return { events: eventsList, totalCount };
   } catch (error) {
     console.error("Error in getEventsByTournament:", error);
-    return [false, 0];
+    return { events: [], totalCount: 0 };
   }
-};
-
-async function getEventsBySport(sport, skip, size) {
+}
+async function getEventsBySport(sport, skip, size, sortOrder) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
@@ -107,10 +102,10 @@ async function getEventsBySport(sport, skip, size) {
       SPORT: sport,
       START_UTIME: { $gt: currentTime },
     })
-      .sort({ START_UTIME: 1 })
+      .sort({ START_UTIME: sortOrder })
       .skip(skip)
       .limit(size)
-      .select("-_id -__v") // Exclude _id and __v from the output
+      .select("-_id -__v")
       .lean();
 
     // Get total count of matching events for pagination
@@ -122,11 +117,11 @@ async function getEventsBySport(sport, skip, size) {
     return { events: upcomingEvents, totalCount };
   } catch (error) {
     console.error("Error in getEventsBySport:", error);
-    throw error; // Rethrow the error to be handled by the caller
+    throw error;
   }
 }
 
-async function getEventsBySportAndCountry(sport, country, skip, size) {
+async function getEventsBySportAndCountry(sport, country, skip, size, sortOrder) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
@@ -136,10 +131,10 @@ async function getEventsBySportAndCountry(sport, country, skip, size) {
       COUNTRY_ID: country,
       START_UTIME: { $gt: currentTime },
     })
-      .sort({ START_UTIME: 1 })
+      .sort({ START_UTIME: sortOrder })
       .skip(skip)
       .limit(size)
-      .select("-_id -__v") // Exclude _id and __v from the output
+      .select("-_id -__v")
       .lean();
 
     // Get total count of matching events for pagination
@@ -152,13 +147,12 @@ async function getEventsBySportAndCountry(sport, country, skip, size) {
     return { events: upcomingEvents, totalCount };
   } catch (error) {
     console.error("Error in getEventsBySportAndCountry:", error);
-    throw error; // Rethrow the error to be handled by the caller
+    throw error;
   }
 }
-async function getEventsByList(ids) {
+async function getEventsByList(ids, skip, size, sortOrder) {
   console.log("getEventsByList");
 
-  // Validate ids
   if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) {
     if (typeof ids === "string") {
       ids = [ids];
@@ -174,10 +168,16 @@ async function getEventsByList(ids) {
     const eventsList = events.filter((event) => event !== null);
     const totalCount = eventsList.length;
 
-    return { events: eventsList, totalCount };
+    // Sort the filtered events list
+    eventsList.sort((a, b) => (a.START_UTIME > b.START_UTIME ? sortOrder : -sortOrder));
+
+    // Apply pagination manually since the eventsList is already filtered
+    const paginatedEvents = eventsList.slice(skip, skip + size);
+
+    return { events: paginatedEvents, totalCount };
   } catch (error) {
     console.error("Error in getEventsByList:", error);
-    throw error; // Rethrow the error to be handled by the caller
+    throw error;
   }
 }
 
@@ -253,35 +253,3 @@ async function updateEvent(eventId) {
 
   return event;
 }
-
-getEventsByTournament = async (tournament, skip, size) => {
-  console.log("getEventsByTournament");
-  try {
-    const SECONDS_IN_A_DAY = 86400; // Number of seconds in a day
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    // Fetch events that match the criteria and apply pagination
-    let eventsList = await Event.aggregate([
-      {
-        $match: {
-          TOURNAMENT_ID: tournament,
-          START_UTIME: { $gt: currentTime },
-        },
-      },
-      { $skip: skip },
-      { $limit: size },
-      // You can add a $project stage here to remove unwanted fields, if needed
-    ]);
-
-    // Get total count of matching events for pagination
-    const totalCount = await Event.countDocuments({
-      TOURNAMENT_ID: tournament,
-      START_UTIME: { $gt: currentTime },
-    });
-
-    return { events: eventsList, totalCount };
-  } catch (error) {
-    console.error("Error in getEventsByTournament:", error);
-    return [false, 0];
-  }
-};
