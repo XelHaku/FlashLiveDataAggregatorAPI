@@ -7,31 +7,50 @@ const NewsModel = require("../models/newsModel"); // Import the News model you c
 const pageSize = 12;
 // getEvents function
 exports.getEvents = async (req, res) => {
-  const { id, tournament, sport, country, pageNo, sort = 'asc', pageSize = 12 } = req.query;
+  const {
+    id,
+    tournament,
+    sport = "-1",
+    country,
+    pageNo,
+    sort = "asc",
+    pageSize = 12,
+  } = req.query;
   const page = pageNo ? parseInt(pageNo) : 1; // Default to page 1 if pageNo is not provided
   const size = parseInt(pageSize);
   const skip = (page - 1) * size; // Calculate the number of items to skip
 
   // Define the sort order
-  const sortOrder = sort.toLowerCase() === 'desc' ? -1 : 1;
+  const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
   try {
     let eventsList, totalItems;
 
     // Modify each condition to include pagination using limit, skip, and sort
     if (tournament) {
-      const result = await getEventsByTournament(tournament, skip, size, sortOrder);
-      eventsList = result.events;
-      totalItems = result.totalCount;
-    } else if (sport) {
-      const result = country
-        ? await getEventsBySportAndCountry(sport, country, skip, size, sortOrder)
-        : await getEventsBySport(sport, skip, size, sortOrder);
+      const result = await getEventsByTournament(
+        tournament,
+        skip,
+        size,
+        sortOrder
+      );
       eventsList = result.events;
       totalItems = result.totalCount;
     } else if (id) {
       const idArray = Array.isArray(id) ? id : [id];
       const result = await getEventsByList(idArray, skip, size, sortOrder);
+      eventsList = result.events;
+      totalItems = result.totalCount;
+    } else if (sport) {
+      const result = country
+        ? await getEventsBySportAndCountry(
+            sport,
+            country,
+            skip,
+            size,
+            sortOrder
+          )
+        : await getEventsBySport(sport, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
     }
@@ -97,11 +116,18 @@ async function getEventsBySport(sport, skip, size, sortOrder) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch the upcoming events for the given sport with pagination
-    const upcomingEvents = await Event.find({
-      SPORT: sport,
+    // Create a filter object for the query
+    const filter = {
       START_UTIME: { $gt: currentTime },
-    })
+    };
+
+    // Add sport filter only if sport is not -1
+    if (sport !== "-1") {
+      filter.SPORT = sport;
+    }
+
+    // Fetch the upcoming events for the given sport with pagination
+    const upcomingEvents = await Event.find(filter)
       .sort({ START_UTIME: sortOrder })
       .skip(skip)
       .limit(size)
@@ -109,10 +135,7 @@ async function getEventsBySport(sport, skip, size, sortOrder) {
       .lean();
 
     // Get total count of matching events for pagination
-    const totalCount = await Event.countDocuments({
-      SPORT: sport,
-      START_UTIME: { $gt: currentTime },
-    });
+    const totalCount = await Event.countDocuments(filter);
 
     return { events: upcomingEvents, totalCount };
   } catch (error) {
@@ -121,16 +144,33 @@ async function getEventsBySport(sport, skip, size, sortOrder) {
   }
 }
 
-async function getEventsBySportAndCountry(sport, country, skip, size, sortOrder) {
+async function getEventsBySportAndCountry(
+  sport,
+  country,
+  skip,
+  size,
+  sortOrder
+) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch the upcoming events for the given sport and country with pagination
-    const upcomingEvents = await Event.find({
-      SPORT: sport,
-      COUNTRY_ID: country,
+    // Create a filter object for the query
+    const filter = {
       START_UTIME: { $gt: currentTime },
-    })
+    };
+
+    // Add sport filter only if sport is not -1
+    if (sport !== -1) {
+      filter.SPORT = sport;
+    }
+
+    // Add country filter only if country is not -1
+    if (country !== -1) {
+      filter.COUNTRY_ID = country;
+    }
+
+    // Fetch the upcoming events for the given sport and country with pagination
+    const upcomingEvents = await Event.find(filter)
       .sort({ START_UTIME: sortOrder })
       .skip(skip)
       .limit(size)
@@ -138,11 +178,7 @@ async function getEventsBySportAndCountry(sport, country, skip, size, sortOrder)
       .lean();
 
     // Get total count of matching events for pagination
-    const totalCount = await Event.countDocuments({
-      SPORT: sport,
-      COUNTRY_ID: country,
-      START_UTIME: { $gt: currentTime },
-    });
+    const totalCount = await Event.countDocuments(filter);
 
     return { events: upcomingEvents, totalCount };
   } catch (error) {
@@ -150,6 +186,7 @@ async function getEventsBySportAndCountry(sport, country, skip, size, sortOrder)
     throw error;
   }
 }
+
 async function getEventsByList(ids, skip, size, sortOrder) {
   console.log("getEventsByList");
 

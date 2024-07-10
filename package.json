@@ -1,7 +1,7 @@
 {
   "name": "flashscoreaggregatorapi",
   "version": "1.0.0",
-  "description": "Express server API to collect and serve FalshScore Data for the Arenaton",
+  "description": "Express server API to collect and serve FlashScore Data for the Arenaton",
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
@@ -24,14 +24,19 @@
   },
   "homepage": "https://github.com/XelHaku/FlashScoreAggregatorAPI#readme",
   "dependencies": {
+    "@eslint/config-array": "^0.17.0",
+    "@eslint/object-schema": "^2.1.4",
     "axios": "^1.7.2",
     "ckey": "^1.0.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-rate-limit": "^6.11.2",
+    "glob": "^11.0.0",
+    "lru-cache": "^7.18.3",
     "mongoose": "^7.7.0",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "rimraf": "^6.0.1"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
