@@ -3,7 +3,6 @@
 // const mongoose = require('mongoose');
 const Event = require("../models/eventModel");
 const { EventById } = require("../flashLive/EventById");
-const { NewsByEventId } = require("../flashLive/NewsByEventId");
 const { VideosByEventId } = require("../flashLive/VideosByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 const NewsModel = require("../models/newsModel"); // Import the News model you created

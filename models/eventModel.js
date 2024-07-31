@@ -1,6 +1,19 @@
 const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
+
+const OddsSchema = new Schema(
+  {
+    // This will allow any data to be stored
+    data: Schema.Types.Mixed,
+  },
+  {
+    // This option allows for additional fields not specified in the schema
+    strict: false,
+    // Adds createdAt and updatedAt fields automatically
+    timestamps: true,
+  }
+);
 const VideosSchema = new Schema({
   PROPERTY_LINK: { type: String, default: null },
   PROPERTY_TIME: { type: Number, default: null }, // Using Number, assuming it's a timestamp. Adjust if needed.
@@ -108,6 +121,7 @@ const eventSchema = new Schema({
   // Adding the NEWS array to the schema
   NEWS: [NewsSchema, (required = false)],
   VIDEOS: [VideosSchema, (required = false)],
+  ODDS: [OddsSchema, (required = false)],
 });
 
 const Event = mongoose.model("Event", eventSchema);

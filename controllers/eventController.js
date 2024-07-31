@@ -2,6 +2,7 @@ const Event = require("../models/eventModel");
 const { EventById } = require("../flashLive/EventById");
 const { NewsByEventId } = require("../flashLive/NewsByEventId");
 const { VideosByEventId } = require("../flashLive/VideosByEventId");
+const { MatchOddsByEventId } = require("../flashLive/MatchOddsByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 const NewsModel = require("../models/newsModel"); // Import the News model you created
 const pageSize = 12;
@@ -206,7 +207,9 @@ async function getEventsByList(ids, skip, size, sortOrder) {
     const totalCount = eventsList.length;
 
     // Sort the filtered events list
-    eventsList.sort((a, b) => (a.START_UTIME > b.START_UTIME ? sortOrder : -sortOrder));
+    eventsList.sort((a, b) =>
+      a.START_UTIME > b.START_UTIME ? sortOrder : -sortOrder
+    );
 
     // Apply pagination manually since the eventsList is already filtered
     const paginatedEvents = eventsList.slice(skip, skip + size);
@@ -246,7 +249,7 @@ async function updateEvent(eventId) {
   const currentTime = Math.floor(Date.now() / 1000);
 
   // Check if the event needs to be updated based on the lastUpdated timestamp
-  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
+  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60 || true) {
     // Fetch the latest event details from an external source
     let newEvent = await EventById(eventId);
 
@@ -268,17 +271,23 @@ async function updateEvent(eventId) {
     newEvent = scorePartValidation(newEvent);
 
     // Process and update news and videos
-    const [news, videos] = await Promise.all([
+    const [news, videos, matchOdds] = await Promise.all([
       NewsByEventId(eventId).catch((error) =>
         console.error("Error fetching news:", error)
       ),
       VideosByEventId(eventId).catch((error) =>
         console.error("Error fetching Video:", error)
       ),
+      MatchOddsByEventId(eventId, newEvent.SPORT || 1).catch((error) =>
+        console.error("Error fetching Video:", error)
+      ),
+
+      ,
     ]);
 
     if (news) newEvent.NEWS = news;
     if (videos) newEvent.VIDEOS = videos;
+    if (matchOdds) newEvent.ODDS = matchOdds;
 
     // Update the event in the database with the new data
     await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
