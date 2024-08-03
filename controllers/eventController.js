@@ -278,7 +278,7 @@ async function updateEvent(eventId) {
       VideosByEventId(eventId).catch((error) =>
         console.error("Error fetching Video:", error)
       ),
-      MatchOddsByEventId(eventId, newEvent.SPORT || 1).catch((error) =>
+      MatchOddsByEventId(eventId).catch((error) =>
         console.error("Error fetching Video:", error)
       ),
 
