@@ -301,38 +301,47 @@ async function updateEvent(eventId) {
 }
 
 exports.getSearchEvents = async (req, res) => {
-  const { search_text, pageNo = 1, pageSize = 12 } = req.query;
+  const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
   const page = parseInt(pageNo);
   const size = parseInt(pageSize);
   const skip = (page - 1) * size;
 
   try {
-    if (!search_text || search_text.length < 4) {
+    if (!search_text || search_text.length < 3) {
       return res.status(400).json({
         status: "error",
         message: "Search text must be at least 4 characters long",
       });
     }
+
     const searchRegex = new RegExp(search_text, "i");
     const query = {
-      $or: [
-        { EVENT_ID: searchRegex },
-        { AWAY_NAME: searchRegex },
-        { AWAY_PARTICIPANT_NAME_ONE: searchRegex },
-        { CATEGORY_NAME: searchRegex },
-        { COUNTRY_NAME: searchRegex },
-        { HOME_NAME: searchRegex },
-        { HOME_PARTICIPANT_NAME_ONE: searchRegex },
-        { NAME: searchRegex },
-        { NAME_PART_1: searchRegex },
-        { NAME_PART_2: searchRegex },
-        { SHORTNAME_AWAY: searchRegex },
-        { SHORTNAME_HOME: searchRegex },
-        { SHORT_NAME: searchRegex },
-        { SORT: searchRegex },
-        { TOURNAMENT_ID: searchRegex },
+      $and: [
+        {
+          $or: [
+            { EVENT_ID: searchRegex },
+            { AWAY_NAME: searchRegex },
+            { AWAY_PARTICIPANT_NAME_ONE: searchRegex },
+            { CATEGORY_NAME: searchRegex },
+            { COUNTRY_NAME: searchRegex },
+            { HOME_NAME: searchRegex },
+            { HOME_PARTICIPANT_NAME_ONE: searchRegex },
+            { NAME: searchRegex },
+            { NAME_PART_1: searchRegex },
+            { NAME_PART_2: searchRegex },
+            { SHORTNAME_AWAY: searchRegex },
+            { SHORTNAME_HOME: searchRegex },
+            { SHORT_NAME: searchRegex },
+            { SORT: searchRegex },
+            { TOURNAMENT_ID: searchRegex },
+          ],
+        },
       ],
     };
+
+    if (sport) {
+      query.$and.push({ SPORT: sport });
+    }
 
     const events = await Event.find(query)
       .select({
