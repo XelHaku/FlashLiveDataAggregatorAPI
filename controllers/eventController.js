@@ -299,3 +299,92 @@ async function updateEvent(eventId) {
 
   return event;
 }
+
+exports.getSearchEvents = async (req, res) => {
+  const { search_text, pageNo = 1, pageSize = 12 } = req.query;
+  const page = parseInt(pageNo);
+  const size = parseInt(pageSize);
+  const skip = (page - 1) * size;
+
+  try {
+    if (!search_text || search_text.length < 4) {
+      return res.status(400).json({
+        status: "error",
+        message: "Search text must be at least 4 characters long",
+      });
+    }
+    const searchRegex = new RegExp(search_text, "i");
+    const query = {
+      $or: [
+        { EVENT_ID: searchRegex },
+        { AWAY_NAME: searchRegex },
+        { AWAY_PARTICIPANT_NAME_ONE: searchRegex },
+        { CATEGORY_NAME: searchRegex },
+        { COUNTRY_NAME: searchRegex },
+        { HOME_NAME: searchRegex },
+        { HOME_PARTICIPANT_NAME_ONE: searchRegex },
+        { NAME: searchRegex },
+        { NAME_PART_1: searchRegex },
+        { NAME_PART_2: searchRegex },
+        { SHORTNAME_AWAY: searchRegex },
+        { SHORTNAME_HOME: searchRegex },
+        { SHORT_NAME: searchRegex },
+        { SORT: searchRegex },
+        { TOURNAMENT_ID: searchRegex },
+      ],
+    };
+
+    const events = await Event.find(query)
+      .select({
+        EVENT_ID: 1,
+        NAME: 1,
+        CATEGORY_NAME: 1,
+        COUNTRY_NAME: 1,
+        HOME_NAME: 1,
+        AWAY_NAME: 1,
+        HOME_PARTICIPANT_NAME_ONE: 1,
+        AWAY_PARTICIPANT_NAME_ONE: 1,
+        START_UTIME: 1,
+        STAGE_TYPE: 1,
+        HOME_SCORE_CURRENT: 1,
+        AWAY_SCORE_CURRENT: 1,
+        ODDS: 1,
+        HOME_IMAGES: 1,
+        AWAY_IMAGES: 1,
+        SHORTNAME_HOME: 1,
+        SHORTNAME_AWAY: 1,
+        SHORT_NAME: 1,
+        TOURNAMENT_ID: 1,
+      })
+      .sort({ START_UTIME: 1 })
+      .skip(skip)
+      .limit(size);
+
+    const totalItems = await Event.countDocuments(query);
+    const totalPages = Math.ceil(totalItems / size);
+
+    if (events.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No events found matching the search criteria",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: events,
+      pagination: {
+        currentPage: page,
+        pageSize: size,
+        totalItems,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getSearchEvents:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+};
