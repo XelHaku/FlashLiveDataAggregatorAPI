@@ -1,46 +1,48 @@
-const axios = require('axios');
-const ck = require('ckey');
+const ck = require("ckey");
 
 async function EventListFlashLive(sportId, indentDays) {
   const now = Math.floor(Date.now() / 1000);
+  const url = new URL("https://flashlive-sports.p.rapidapi.com/v1/events/list");
+
+  url.searchParams.append("indent_days", indentDays);
+  url.searchParams.append("locale", "en_INT");
+  url.searchParams.append("timezone", "0");
+  url.searchParams.append("sport_id", sportId);
+
   const options = {
-    method: 'GET',
-    url: 'https://flashlive-sports.p.rapidapi.com/v1/events/list',
-    params: {
-      indent_days: indentDays,
-      locale: 'en_INT',
-      timezone: '0',
-      sport_id: sportId,
-    },
+    method: "GET",
     headers: {
-      'X-RapidAPI-Key': ck.RAPID_API_KEY,
-      'X-RapidAPI-Host': ck.RAPID_HOST,
+      "X-RapidAPI-Key": ck.RAPID_API_KEY,
+      "X-RapidAPI-Host": ck.RAPID_HOST,
     },
   };
-  const events = [];
-  try {
-    const response = await axios.request(options);
-    const data = response.data.DATA;
 
-    for (let i = 0; i < data.length; i += 1) {
-      if (data[i].EVENTS !== undefined) {
-        for (let j = 0; j < data[i].EVENTS.length; j += 1) {
-          // eslint-disable-next-line node/no-unsupported-features/es-syntax
-          const event = { ...data[i], ...data[i].EVENTS[j] };
-          event.lastUpdated = now;
-          delete event.EVENTS;
-          events.push(event);
-          // console.log(event);
-        }
-      }
+  try {
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const responseData = await response.json();
+    const data = responseData.DATA;
+
+    const events = data.flatMap((item) => {
+      if (item.EVENTS) {
+        return item.EVENTS.map((event) => {
+          const combinedEvent = { ...item, ...event, lastUpdated: now };
+          delete combinedEvent.EVENTS;
+          return combinedEvent;
+        });
+      }
+      return [];
+    });
+
     return events;
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching event list:", error);
     return null;
   }
 }
-
-// EventListFlashLive(6);
 
 module.exports = { EventListFlashLive };
