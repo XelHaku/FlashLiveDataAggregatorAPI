@@ -308,6 +308,7 @@ router.route("/").get(eventController.getEvents);
 router.route("/search").get(eventController.getSearchEvents);
 module.exports = router;
 
+
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
   const page = parseInt(pageNo);
@@ -344,6 +345,7 @@ exports.getSearchEvents = async (req, res) => {
             { TOURNAMENT_ID: searchRegex },
           ],
         },
+        { START_UTIME: { $gt: 1730908800 } }, // Added condition to only query events with START_UTIME > 1730908800
       ],
     };
 
