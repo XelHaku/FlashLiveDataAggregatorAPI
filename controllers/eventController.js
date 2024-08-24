@@ -299,6 +299,14 @@ async function updateEvent(eventId) {
 
   return event;
 }
+const express = require("express");
+const eventController = require("../controllers/eventController");
+
+const router = express.Router();
+
+router.route("/").get(eventController.getEvents);
+router.route("/search").get(eventController.getSearchEvents);
+module.exports = router;
 
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
