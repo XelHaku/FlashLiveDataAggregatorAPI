@@ -299,7 +299,7 @@ async function updateEvent(eventId) {
 
   return event;
 }
-
+// getSearchEvents function
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
   const page = parseInt(pageNo);
@@ -336,10 +336,11 @@ exports.getSearchEvents = async (req, res) => {
             { TOURNAMENT_ID: searchRegex },
           ],
         },
+        { START_UTIME: { $gt: Math.floor(Date.now() / 1000) } }, // Co Added condition to only query events with START_UTIME > 1730908800
       ],
     };
 
-    if (sport) {
+    if (sport && sport !== "-1") {
       query.$and.push({ SPORT: sport });
     }
 
