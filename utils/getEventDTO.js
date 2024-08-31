@@ -2,7 +2,6 @@ const { ethers } = require("ethers");
 
 const ARENATON_CONTRACT = process.env.ARENATON_CONTRACT;
 const RPC_URL = process.env.RPC_URL;
-const BASE_URL = process.env.URL;
 
 // Define the contract ABI with the correct function signature
 const contractABI = [
@@ -62,30 +61,12 @@ async function getEventDTO(_eventId, _playerAddress = DEFAULT_PLAYER_ADDRESS) {
     let eventRawDTO = await contract.getEventDTO(_eventId, playerAddress);
 
     const eventDTO = mapEventDTO(eventRawDTO, _eventId);
-    updateEventState(eventDTO);
 
     return { eventDTO };
   } catch (error) {
     console.error("Failed to fetch or process event DTO:", error);
     throw error;
   }
-}
-
-/**
- * Updates the event state based on current conditions.
- */
-function updateEventState(eventDTO) {
-  const currentTime = Math.floor(Date.now() / 1000);
-  const startDate = parseInt(eventDTO.startDate);
-
-  //   eventDTO.eventState =
-  //     currentTime > startDate
-  //       ? event.WINNER === -1
-  //         ? "2"
-  //         : event.WINNER >= 0
-  //         ? "3"
-  //         : "1"
-  //       : "1";
 }
 
 /**
@@ -186,8 +167,8 @@ function formatShortTotal(value) {
     if (isNaN(ether)) return "0";
 
     if (ether < 0.000001) return ether.toExponential(0);
-    if (ether < 0.001) return ether.toExponential(3);
-    if (ether < 1000) return ether.toFixed(3);
+    if (ether < 0.001) return ether.toExponential(4);
+    if (ether < 1000) return ether.toFixed(4);
     return ether.toFixed(0);
   } catch (error) {
     console.error("Error in formatShortTotal:", error);
@@ -223,7 +204,6 @@ function createDefaultEventDTO(_eventId) {
 
 module.exports = {
   getEventDTO,
-  updateEventState,
   mapEventDTO,
   calculateExpected,
   normalizeOdds,

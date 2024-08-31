@@ -26,7 +26,7 @@ async function VideosByEventId(eventId) {
     const jsonData = await response.json();
     return jsonData.DATA;
   } catch (error) {
-    console.error("Error fetching video data:", error);
+    // console.error("Error fetching video data:", error);
     return null;
   }
 }

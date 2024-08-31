@@ -296,7 +296,11 @@ async function updateEvent(eventId) {
 
     if (news) newEvent.NEWS = news;
     if (videos) newEvent.VIDEOS = videos;
-    if (matchOdds) newEvent.ODDS = matchOdds;
+    if (matchOdds) {
+      newEvent.ODDS = matchOdds.DATA;
+    } else {
+      newEvent.ODDS = [];
+    }
 
     // Update the event in the database with the new data
     await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
