@@ -26,9 +26,10 @@
   "dependencies": {
     "@eslint/config-array": "^0.17.1",
     "@eslint/object-schema": "^2.1.4",
-    "axios": "^1.7.5",
+    "axios": "^1.7.6",
     "ckey": "^1.0.3",
     "cors": "^2.8.5",
+    "ethers": "^6.13.2",
     "express": "^4.19.2",
     "express-rate-limit": "^6.11.2",
     "glob": "^11.0.0",

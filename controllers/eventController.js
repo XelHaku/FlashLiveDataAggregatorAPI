@@ -4,9 +4,11 @@ const { NewsByEventId } = require("../flashLive/NewsByEventId");
 const { VideosByEventId } = require("../flashLive/VideosByEventId");
 const { MatchOddsByEventId } = require("../flashLive/MatchOddsByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
-const NewsModel = require("../models/newsModel"); // Import the News model you created
+
+const { getEventDTO } = require("../utils/getEventDTO");
+const NewsModel = require("../models/newsModel");
 const pageSize = 12;
-// getEvents function
+
 exports.getEvents = async (req, res) => {
   const {
     id,
@@ -16,18 +18,17 @@ exports.getEvents = async (req, res) => {
     pageNo,
     sort = "asc",
     pageSize = 12,
+    playerAddress,
   } = req.query;
-  const page = pageNo ? parseInt(pageNo) : 1; // Default to page 1 if pageNo is not provided
+  const page = pageNo ? parseInt(pageNo) : 1;
   const size = parseInt(pageSize);
-  const skip = (page - 1) * size; // Calculate the number of items to skip
+  const skip = (page - 1) * size;
 
-  // Define the sort order
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
   try {
     let eventsList, totalItems;
 
-    // Modify each condition to include pagination using limit, skip, and sort
     if (tournament) {
       const result = await getEventsByTournament(
         tournament,
@@ -63,11 +64,18 @@ exports.getEvents = async (req, res) => {
       });
     }
 
+    let events = [];
+
+    for (const event of eventsList) {
+      const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
+      events.push({ eventFlash: event, eventDTO });
+    }
+
     const totalPages = Math.ceil(totalItems / size);
 
     res.status(200).json({
       status: "success",
-      data: eventsList,
+      data: { events },
       pagination: {
         currentPage: page,
         pageSize: size,
@@ -83,6 +91,7 @@ exports.getEvents = async (req, res) => {
     });
   }
 };
+
 async function getEventsByTournament(tournament, skip, size, sortOrder) {
   console.log("getEventsByTournament");
   try {
