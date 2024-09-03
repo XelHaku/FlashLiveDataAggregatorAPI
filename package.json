@@ -26,7 +26,7 @@
   "dependencies": {
     "@eslint/config-array": "^0.17.1",
     "@eslint/object-schema": "^2.1.4",
-    "axios": "^1.7.6",
+    "axios": "^1.7.7",
     "ckey": "^1.0.3",
     "cors": "^2.8.5",
     "ethers": "^6.13.2",
@@ -43,11 +43,11 @@
     "eslint": "^8.57.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^8.10.0",
-    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-jsx-a11y": "^6.9.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react": "^7.35.2",
     "prettier": "^2.8.8"
   }
 }

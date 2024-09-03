@@ -6,12 +6,14 @@ const { MatchOddsByEventId } = require("../flashLive/MatchOddsByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 
 const { getEventDTO } = require("../utils/getEventDTO");
+const { listArenatonEvents } = require("../utils/listArenatonEvents");
 const NewsModel = require("../models/newsModel");
 const pageSize = 12;
 
 exports.getEvents = async (req, res) => {
   const {
     id,
+    active,
     tournament,
     sport = "-1",
     country,
@@ -29,7 +31,12 @@ exports.getEvents = async (req, res) => {
   try {
     let eventsList, totalItems;
 
-    if (tournament) {
+    if (active) {
+      const activeEvents = await listArenatonEvents(sport, 0);
+      const result = await getEventsByList(activeEvents, skip, size, sortOrder);
+      eventsList = result.events;
+      totalItems = result.totalCount;
+    } else if (tournament) {
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -258,7 +265,7 @@ async function updateEvent(eventId) {
   const currentTime = Math.floor(Date.now() / 1000);
 
   // Check if the event needs to be updated based on the lastUpdated timestamp
-  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60 || true) {
+  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
     // Fetch the latest event details from an external source
     let newEvent = await EventById(eventId);
 
@@ -302,7 +309,8 @@ async function updateEvent(eventId) {
       newEvent.ODDS = [];
     }
 
-    // Update the event in the database with the new data
+    // Update the event in the database with the new data and update the lastUpdated field
+    newEvent.lastUpdated = currentTime;
     await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
       upsert: true,
       new: true,
