@@ -10,7 +10,16 @@ const { listArenatonEvents } = require("../utils/listArenatonEvents");
 const NewsModel = require("../models/newsModel");
 const pageSize = 12;
 
+/**
+ * Fetches a list of events based on various filters provided in the request query.
+ * Supports pagination and sorting, and can filter by active events, tournament, sport, and country.
+ * Each event is enriched with its corresponding event details (DTO) before returning the response.
+ *
+ * @param {Object} req - Express request object containing the query parameters.
+ * @param {Object} res - Express response object used to send the response.
+ */
 exports.getEvents = async (req, res) => {
+  // Destructure query parameters from the request
   const {
     id,
     active,
@@ -22,21 +31,27 @@ exports.getEvents = async (req, res) => {
     pageSize = 12,
     playerAddress,
   } = req.query;
+
+  // Set default values for pagination
   const page = pageNo ? parseInt(pageNo) : 1;
   const size = parseInt(pageSize);
   const skip = (page - 1) * size;
 
+  // Determine sort order based on the 'sort' query parameter
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
   try {
     let eventsList, totalItems;
 
+    // Fetch active events if the 'active' query parameter is set
     if (active) {
       const activeEvents = await listArenatonEvents(sport, 0);
       const result = await getEventsByList(activeEvents, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
-    } else if (tournament) {
+    }
+    // Fetch events by tournament if the 'tournament' query parameter is set
+    else if (tournament) {
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -45,12 +60,16 @@ exports.getEvents = async (req, res) => {
       );
       eventsList = result.events;
       totalItems = result.totalCount;
-    } else if (id) {
+    }
+    // Fetch specific events by their IDs if the 'id' query parameter is set
+    else if (id) {
       const idArray = Array.isArray(id) ? id : [id];
       const result = await getEventsByList(idArray, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
-    } else if (sport) {
+    }
+    // Fetch events by sport and optionally filter by country
+    else if (sport) {
       const result = country
         ? await getEventsBySportAndCountry(
             sport,
@@ -64,6 +83,7 @@ exports.getEvents = async (req, res) => {
       totalItems = result.totalCount;
     }
 
+    // If no events are found, return a 404 response
     if (!eventsList || eventsList.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -73,13 +93,16 @@ exports.getEvents = async (req, res) => {
 
     let events = [];
 
+    // Enrich each event with its corresponding DTO (Data Transfer Object) for additional details
     for (const event of eventsList) {
       const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
       events.push({ eventFlash: event, eventDTO });
     }
 
+    // Calculate the total number of pages for pagination
     const totalPages = Math.ceil(totalItems / size);
 
+    // Send the response with the events and pagination details
     res.status(200).json({
       status: "success",
       data: { events },
@@ -91,6 +114,7 @@ exports.getEvents = async (req, res) => {
       },
     });
   } catch (error) {
+    // Handle any errors that occur during the process and send a 500 response
     console.error("Error in getEvents:", error);
     res.status(500).json({
       status: "error",
