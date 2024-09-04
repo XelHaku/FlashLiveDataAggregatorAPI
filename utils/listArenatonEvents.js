@@ -1,6 +1,5 @@
 const ethers = require("ethers");
 
-// TODO: Update the contract ABI with the correct function signature
 const contractABI = [
   {
     type: "function",
@@ -46,13 +45,13 @@ const contractABI = [
   },
 ];
 
-// enum Step {
-//   Opened, // Staking is currently allowed for the event.
-//   Closed, // Event has ended.
-//   Paid, // Event has been paid out.
-// }
-// Function to get and return only the list of event IDs
-async function listArenatonEvents(_sport, _step) {
+async function listArenatonEvents(
+  _sport,
+  _step,
+  sort = "asc",
+  pageNo = 1,
+  pageSize = 12
+) {
   try {
     const contractAddress = process.env.ARENATON_CONTRACT;
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
@@ -61,10 +60,36 @@ async function listArenatonEvents(_sport, _step) {
       contractABI,
       provider
     );
-    const activeEvents = await contract.listArenatonEvents(_sport, _step);
 
-    // Map through the active events to extract the eventId
-    const activeEventsIdList = activeEvents.map((event) => event[0]);
+    const activeEvents = await contract.listArenatonEvents(_sport, _step);
+    console.log("Active Events:", activeEvents);
+
+    // Create a shallow copy of the array before sorting
+    const sortedEvents = [...activeEvents];
+
+    // Sort by total (event[5]) and then by startDate (event[1])
+    sortedEvents.sort((a, b) => {
+      const totalComparison = a[5] > b[5] ? 1 : a[5] < b[5] ? -1 : 0; // Compare the totals (event[5])
+      if (totalComparison !== 0) {
+        return sort === "asc" ? totalComparison : -totalComparison;
+      }
+
+      // If totals are equal, sort by startDate (event[1])
+      const dateComparison = a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0;
+      return sort === "asc" ? dateComparison : -dateComparison;
+    });
+
+    // Calculate pagination
+    const totalItems = sortedEvents.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (pageNo - 1) * pageSize;
+    const paginatedEvents = sortedEvents.slice(
+      startIndex,
+      startIndex + pageSize
+    );
+
+    // Map through the paginated events to extract the eventId
+    const activeEventsIdList = paginatedEvents.map((event) => event[0]);
 
     // Convert to array if not already
     const idArray = Array.isArray(activeEventsIdList)

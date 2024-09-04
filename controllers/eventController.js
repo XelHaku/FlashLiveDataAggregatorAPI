@@ -45,8 +45,20 @@ exports.getEvents = async (req, res) => {
 
     // Fetch active events if the 'active' query parameter is set
     if (active) {
-      const activeEvents = await listArenatonEvents(sport, 0);
-      const result = await getEventsByList(activeEvents, skip, size, sortOrder);
+      const activeEvents = await listArenatonEvents(
+        sport,
+        0,
+        sort,
+        pageNo,
+        pageSize
+      );
+      const result = await getEventsByList(
+        activeEvents,
+        skip,
+        size,
+        sortOrder,
+        true
+      );
       eventsList = result.events;
       totalItems = result.totalCount;
     }
@@ -64,7 +76,18 @@ exports.getEvents = async (req, res) => {
     // Fetch specific events by their IDs if the 'id' query parameter is set
     else if (id) {
       const idArray = Array.isArray(id) ? id : [id];
-      const result = await getEventsByList(idArray, skip, size, sortOrder);
+      let shortDTO = true;
+      if (idArray.length == 1) {
+        shortDTO = false;
+      }
+
+      const result = await getEventsByList(
+        idArray,
+        skip,
+        size,
+        sortOrder,
+        shortDTO
+      );
       eventsList = result.events;
       totalItems = result.totalCount;
     }
@@ -94,10 +117,14 @@ exports.getEvents = async (req, res) => {
     let events = [];
 
     // Enrich each event with its corresponding DTO (Data Transfer Object) for additional details
-    for (const event of eventsList) {
-      const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
-      events.push({ eventFlash: event, eventDTO });
-    }
+    const enrichedEvents = await Promise.all(
+      eventsList.map(async (event) => {
+        const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
+        return { eventFlash: event, eventDTO };
+      })
+    );
+
+    events.push(...enrichedEvents);
 
     // Calculate the total number of pages for pagination
     const totalPages = Math.ceil(totalItems / size);
@@ -227,8 +254,7 @@ async function getEventsBySportAndCountry(
     throw error;
   }
 }
-
-async function getEventsByList(ids, skip, size, sortOrder) {
+async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
   console.log("getEventsByList");
 
   if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) {
@@ -239,20 +265,35 @@ async function getEventsByList(ids, skip, size, sortOrder) {
     }
   }
 
-  try {
-    // Fetch and update each event by its ID
-    const events = await Promise.all(ids.map(updateEvent));
-    // Filter out null events
-    const eventsList = events.filter((event) => event !== null);
-    const totalCount = eventsList.length;
+  // Helper function to add delay
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Sort the filtered events list
-    eventsList.sort((a, b) =>
-      a.START_UTIME > b.START_UTIME ? sortOrder : -sortOrder
-    );
+  try {
+    const events = [];
+
+    for (const id of ids) {
+      // Update event and add it to the events array
+      const event = await updateEvent(id, shortDTO);
+      if (event !== null) {
+        events.push(event);
+      }
+      // Add a delay of 10 milliseconds before the next call
+      await delay(10);
+    }
+
+    const totalCount = events.length;
+
+    // Sort the events based on the START_UTIME field in the specified order
+    events.sort((a, b) => {
+      if (sortOrder === 1) {
+        return a.START_UTIME - b.START_UTIME;
+      } else {
+        return b.START_UTIME - a.START_UTIME;
+      }
+    });
 
     // Apply pagination manually since the eventsList is already filtered
-    const paginatedEvents = eventsList.slice(skip, skip + size);
+    const paginatedEvents = events.slice(skip, skip + size);
 
     return { events: paginatedEvents, totalCount };
   } catch (error) {
@@ -267,20 +308,28 @@ async function getEventsByList(ids, skip, size, sortOrder) {
  * Applies necessary updates based on certain conditions.
  *
  * @param {string} eventId - The ID of the event to update.
+ * @param {boolean} shortDTO - Flag indicating whether to include expensive fields.
  * @returns {Object | null} - The updated event object or null if not found.
  */
-async function updateEvent(eventId) {
+async function updateEvent(eventId, shortDTO = true) {
+  // Construct the query object based on shortDTO
+  const queryFields = shortDTO
+    ? { NEWS: 0, VIDEOS: 0, ODDS: 0 } // Exclude these fields
+    : {}; // Include all fields if shortDTO is false
+
   // Attempt to find the event in the database
-  let event = await Event.findOne({ EVENT_ID: eventId }).lean();
+  let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();
 
   // If not found in the database, try fetching from an external source (Flashscore)
   if (!event || event === "") {
     event = await EventById(eventId);
+
     // If still not found, return null
     if (!event || event === 404) return null;
+
     // Ensure required fields are included
-    if (!event.HEADER) event.HEADER = "Default Header"; // Provide a default value or fetch it appropriately
-    if (!event.NAME) event.NAME = "Default Name"; // Provide a default value or fetch it appropriately
+    event.HEADER = event.HEADER || "Default Header"; // Provide a default value or fetch it appropriately
+    event.NAME = event.NAME || "Default Name"; // Provide a default value or fetch it appropriately
 
     // If found, create a new event in the database
     event = await Event.create(event);
@@ -310,27 +359,27 @@ async function updateEvent(eventId) {
 
     newEvent = scorePartValidation(newEvent);
 
-    // Process and update news and videos
-    const [news, videos, matchOdds] = await Promise.all([
-      NewsByEventId(eventId).catch((error) =>
-        console.error("Error fetching news:", error)
-      ),
-      VideosByEventId(eventId).catch((error) =>
-        console.error("Error fetching Video:", error)
-      ),
-      MatchOddsByEventId(eventId).catch((error) =>
-        console.error("Error fetching Video:", error)
-      ),
+    // Process and update news, videos, and odds only if shortDTO is false
+    if (!shortDTO) {
+      const [news, videos, matchOdds] = await Promise.all([
+        NewsByEventId(eventId).catch((error) =>
+          console.error("Error fetching news:", error)
+        ),
+        VideosByEventId(eventId).catch((error) =>
+          console.error("Error fetching Video:", error)
+        ),
+        MatchOddsByEventId(eventId).catch((error) =>
+          console.error("Error fetching Match Odds:", error)
+        ),
+      ]);
 
-      ,
-    ]);
-
-    if (news) newEvent.NEWS = news;
-    if (videos) newEvent.VIDEOS = videos;
-    if (matchOdds) {
-      newEvent.ODDS = matchOdds.DATA;
-    } else {
-      newEvent.ODDS = [];
+      if (news) newEvent.NEWS = news;
+      if (videos) newEvent.VIDEOS = videos;
+      if (matchOdds) {
+        newEvent.ODDS = matchOdds.DATA;
+      } else {
+        newEvent.ODDS = [];
+      }
     }
 
     // Update the event in the database with the new data and update the lastUpdated field
@@ -340,10 +389,13 @@ async function updateEvent(eventId) {
       new: true,
       setDefaultsOnInsert: true,
     });
+
+    return newEvent;
   }
 
   return event;
 }
+
 // getSearchEvents function
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;

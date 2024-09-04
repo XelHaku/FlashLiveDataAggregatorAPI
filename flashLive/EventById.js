@@ -18,10 +18,8 @@ async function EventById(eventId) {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return 404;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.warn(`Failed to fetch event ${eventId}: ${response.status}`);
+      return {}; // Return an empty object if the fetch fails
     }
 
     const responseData = await response.json();
@@ -42,8 +40,8 @@ async function EventById(eventId) {
 
     return event;
   } catch (error) {
-    console.error("Error fetching event by ID:", error);
-    return null;
+    console.error(`Error fetching event ${eventId}:`, error.message);
+    return {}; // Return an empty object in case of an error
   }
 }
 

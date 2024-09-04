@@ -18,7 +18,7 @@ exports.getPlayerSummary = async (req, res) => {
     // Fetch the player summary using the utility function
     const playerSummaryData = await playerSummary(addresses);
 
-    // Prepare the JSON object with the required structure
+    // Prepare the JSON object with the required structure, including additional details
     const response = {
       status: "success",
       data: {
@@ -28,6 +28,10 @@ exports.getPlayerSummary = async (req, res) => {
           atonBalance: account.atonBalance,
           unclaimedCommission: account.unclaimedCommission,
           claimedCommission: account.claimedCommission,
+          address: account.address,
+          shortAddress: account.shortAddress,
+          ethShortBalance: account.ethShortBalance,
+          atonShortBalance: account.atonShortBalance,
         })),
         totalCommission: playerSummaryData.totalCommission,
         accumulatedCommission: playerSummaryData.accumulatedCommission,

@@ -126,7 +126,6 @@ function calculateExpected(team, stakeAmount, totalA, totalB) {
   const totalABigInt = BigInt(totalA);
   const totalBBigInt = BigInt(totalB);
 
-  console.log("team", team.toString());
   console.log("stakeAmount", parsedStakeAmount.toString());
   console.log("totalA", totalA);
   console.log("totalB", totalB);
