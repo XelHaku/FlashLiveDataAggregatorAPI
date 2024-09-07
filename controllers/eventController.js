@@ -44,7 +44,7 @@ exports.getEvents = async (req, res) => {
     let eventsList, totalItems;
 
     // Fetch active events if the 'active' query parameter is set
-    if (active) {
+    if (active === "true") {
       const activeEvents = await listArenatonEvents(
         sport,
         0,
@@ -120,6 +120,8 @@ exports.getEvents = async (req, res) => {
     const enrichedEvents = await Promise.all(
       eventsList.map(async (event) => {
         const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
+
+        eventDTO.eventState;
         return { eventFlash: event, eventDTO };
       })
     );
