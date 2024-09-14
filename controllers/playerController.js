@@ -12,30 +12,24 @@ exports.getPlayerSummary = async (req, res) => {
       });
     }
 
-    // Convert the address to an array if it's a single address (for consistency)
-    const addresses = Array.isArray(address) ? address : [address];
-
     // Fetch the player summary using the utility function
-    const playerSummaryData = await playerSummary(addresses);
+    const playerSummaryData = await playerSummary(address);
 
-    // Prepare the JSON object with the required structure, including additional details
+    // Prepare the JSON object with the required structure
     const response = {
       status: "success",
       data: {
-        accounts: playerSummaryData.accounts.map((account) => ({
-          level: account.level,
-          ethBalance: account.ethBalance,
-          atonBalance: account.atonBalance,
-          unclaimedCommission: account.unclaimedCommission,
-          claimedCommission: account.claimedCommission,
-          address: account.address,
-          shortAddress: account.shortAddress,
-          ethShortBalance: account.ethShortBalance,
-          atonShortBalance: account.atonShortBalance,
-        })),
+        level: playerSummaryData.level,
+        ethBalance: playerSummaryData.ethBalance,
+        atonBalance: playerSummaryData.atonBalance,
+        unclaimedCommission: playerSummaryData.unclaimedCommission,
+        claimedCommission: playerSummaryData.claimedCommission,
+        address: playerSummaryData.address,
+        shortAddress: playerSummaryData.shortAddress,
+        ethShortBalance: playerSummaryData.ethShortBalance,
+        atonShortBalance: playerSummaryData.atonShortBalance,
         totalCommission: playerSummaryData.totalCommission,
         accumulatedCommission: playerSummaryData.accumulatedCommission,
-        totalSupply: playerSummaryData.totalSupply,
       },
     };
 

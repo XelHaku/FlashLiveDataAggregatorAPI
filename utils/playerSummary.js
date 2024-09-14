@@ -5,29 +5,17 @@ const contractABI = [
     type: "function",
     name: "playerSummary",
     inputs: [
-      {
-        name: "playerAddresses",
-        type: "address[]",
-        internalType: "address[]",
-      },
+      { name: "playerAddress", type: "address", internalType: "address" },
     ],
     outputs: [
       {
-        name: "accounts",
-        type: "tuple[]",
-        internalType: "struct AStructs.playerSummary[]",
+        name: "summary",
+        type: "tuple",
+        internalType: "struct AStructs.PlayerSummary",
         components: [
           { name: "level", type: "uint32", internalType: "uint32" },
-          {
-            name: "ethBalance",
-            type: "uint256",
-            internalType: "uint256",
-          },
-          {
-            name: "atonBalance",
-            type: "uint256",
-            internalType: "uint256",
-          },
+          { name: "ethBalance", type: "uint256", internalType: "uint256" },
+          { name: "atonBalance", type: "uint256", internalType: "uint256" },
           {
             name: "unclaimedCommission",
             type: "uint256",
@@ -40,11 +28,7 @@ const contractABI = [
           },
         ],
       },
-      {
-        name: "totalCommission",
-        type: "uint256",
-        internalType: "uint256",
-      },
+      { name: "totalCommission", type: "uint256", internalType: "uint256" },
       {
         name: "accumulatedCommission",
         type: "uint256",
@@ -53,18 +37,11 @@ const contractABI = [
     ],
     stateMutability: "view",
   },
-  {
-    type: "function",
-    name: "totalSupply",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "view",
-  },
 ];
 
-async function playerSummary(addresses) {
+async function playerSummary(playerAddress) {
   try {
-    const contractAddress = "0x3f589F0F74fFdE1A474DD5261921AcFB76Aa0eE5";
+    const contractAddress = "0x4A5f105E979BFc46C4301AEc56B4e240a912A393"; // replace with your contract address
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const contract = new ethers.Contract(
       contractAddress,
@@ -72,49 +49,28 @@ async function playerSummary(addresses) {
       provider
     );
 
-    const totalSupply = await contract.totalSupply();
-    const { accounts, totalCommission, accumulatedCommission } =
-      await contract.playerSummary(addresses);
+    // Call the playerSummary function from the contract
+    const [account, totalCommission, accumulatedCommission] =
+      await contract.playerSummary(playerAddress);
 
     console.log(
-      "Fetching player summary for addresses",
-      accounts,
-      totalCommission,
-      accumulatedCommission
+      "Fetching player summary for address:",
+      playerAddress,
+      totalCommission.toString(),
+      accumulatedCommission.toString()
     );
 
-    // Append each address and shortened address to its corresponding account
-    const accountsWithAddresses = accounts.map((account, index) =>
-      renameAccountProperties(account, addresses[index])
-    );
-
-    // Format values as strings with up to 4 decimal places
+    // Format and return the data
+    const formattedAccount = renameAccountProperties(account, playerAddress);
     return {
-      accounts: accountsWithAddresses,
-      totalCommission: parseFloat(ethers.formatEther(totalCommission)).toFixed(
-        18
-      ), // max 4 decimals
-      accumulatedCommission: parseFloat(
-        ethers.formatEther(accumulatedCommission)
-      ).toFixed(18), // max 4 decimals
-      totalSupply: parseFloat(ethers.formatEther(totalSupply)).toFixed(18), // max 4 decimals
+      ...formattedAccount,
+      totalCommission: formatBalance(totalCommission), // Format with 18 decimals
+      accumulatedCommission: formatBalance(accumulatedCommission), // Format with 18 decimals
     };
   } catch (error) {
     console.error("Failed to fetch player summary:", error.message);
     throw error;
   }
-}
-
-function formatDate(date) {
-  let timestamp;
-  if (true) {
-    timestamp = parseInt(date.toString()); // or Number(date)
-  }
-  return new Date(timestamp * 1000).toLocaleString();
-}
-
-function shortenAddress(address) {
-  return address.slice(0, 4) + "..." + address.slice(-4);
 }
 
 function formatBalance(balance) {
@@ -125,17 +81,21 @@ function formatBalance8Zeros(balance) {
   return parseFloat(ethers.formatEther(balance)).toFixed(6);
 }
 
+function shortenAddress(address) {
+  return address.slice(0, 4) + "..." + address.slice(-4);
+}
+
 function renameAccountProperties(account, address) {
   return {
-    level: BigInt(account.level).toString(),
-    ethBalance: formatBalance(BigInt(account.ethBalance)),
-    atonBalance: formatBalance(BigInt(account.atonBalance)),
-    unclaimedCommission: formatBalance(BigInt(account.unclaimedCommission)),
-    claimedCommission: formatBalance(BigInt(account.claimedCommission)),
+    level: account.level.toString(), // Format the level as string
+    ethBalance: formatBalance(account.ethBalance),
+    atonBalance: formatBalance(account.atonBalance),
+    unclaimedCommission: formatBalance(account.unclaimedCommission),
+    claimedCommission: formatBalance(account.claimedCommission),
     address: address,
     shortAddress: shortenAddress(address),
-    ethShortBalance: formatBalance8Zeros(BigInt(account.ethBalance)),
-    atonShortBalance: formatBalance8Zeros(BigInt(account.atonBalance)),
+    ethShortBalance: formatBalance8Zeros(account.ethBalance),
+    atonShortBalance: formatBalance8Zeros(account.atonBalance),
   };
 }
 

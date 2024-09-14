@@ -8,34 +8,40 @@ const ETH_TO_USD = 2615; // Current ETH to USD conversion rate
 const contractABI = [
   {
     type: "function",
-    name: "getEventDTO",
+    name: "getEvent",
     inputs: [
-      { name: "_eventId", type: "string" },
-      { name: "_player", type: "address" },
+      { name: "_eventId", type: "string", internalType: "string" },
+      { name: "_player", type: "address", internalType: "address" },
     ],
     outputs: [
       {
+        name: "",
         type: "tuple",
+        internalType: "struct AStructs.EventDTO",
         components: [
-          { name: "eventId", type: "string" },
-          { name: "startDate", type: "uint256" },
-          { name: "sport", type: "uint8" },
-          { name: "total_A", type: "uint256" },
-          { name: "total_B", type: "uint256" },
-          { name: "total", type: "uint256" },
-          { name: "winner", type: "int8" },
-          { name: "eventState", type: "uint8" },
+          { name: "eventId", type: "string", internalType: "string" },
+          { name: "startDate", type: "uint256", internalType: "uint256" },
+          { name: "sport", type: "uint8", internalType: "uint8" },
+          { name: "total_A", type: "uint256", internalType: "uint256" },
+          { name: "total_B", type: "uint256", internalType: "uint256" },
+          { name: "total", type: "uint256", internalType: "uint256" },
+          { name: "winner", type: "int8", internalType: "int8" },
           {
             name: "playerStake",
             type: "tuple",
+            internalType: "struct AStructs.Stake",
             components: [
-              { name: "amount", type: "uint256" },
-              { name: "team", type: "uint8" },
+              {
+                name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+              },
+              { name: "team", type: "uint8", internalType: "uint8" },
             ],
           },
-          { name: "active", type: "bool" },
-          { name: "closed", type: "bool" },
-          { name: "paid", type: "bool" },
+          { name: "active", type: "bool", internalType: "bool" },
+          { name: "closed", type: "bool", internalType: "bool" },
+          { name: "paid", type: "bool", internalType: "bool" },
         ],
       },
     ],
@@ -50,24 +56,74 @@ const DEFAULT_PLAYER_ADDRESS = "0x0000000000000000000000220000000000000001";
  */
 async function getEventDTO(_eventId, _playerAddress = DEFAULT_PLAYER_ADDRESS) {
   try {
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const contractAddress = process.env.ARENATON_CONTRACT;
+    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const contract = new ethers.Contract(
-      ARENATON_CONTRACT,
+      contractAddress,
       contractABI,
       provider
     );
 
-    const playerAddress = _playerAddress || DEFAULT_PLAYER_ADDRESS;
+    const _player = _playerAddress || DEFAULT_PLAYER_ADDRESS;
 
-    let eventRawDTO = await contract.getEventDTO(_eventId, playerAddress);
+    console.log(`Fetching event ID: ${_eventId} for player: ${_player}`);
 
+    // Fetch raw event data from the contract
+    let eventRawDTO = await contract.getEvent(_eventId, _player);
+
+    // If eventRawDTO is empty or invalid, return a default DTO
+    if (!eventRawDTO || eventRawDTO.length === 0) {
+      console.warn(
+        `No matching event found for ID: ${_eventId}. Returning default DTO.`
+      );
+      return { eventDTO: createDefaultEventDTO(_eventId) }; // Return the default DTO in a structured way
+    }
+
+    // Map the raw event data to a structured DTO
     const eventDTO = mapEventDTO(eventRawDTO, _eventId);
 
-    return { eventDTO };
+    return { eventDTO }; // Return the structured event DTO
   } catch (error) {
-    console.error("Failed to fetch or process event DTO:", error);
-    throw error;
+    console.error(
+      `Failed to fetch or process event DTO for ID ${_eventId}:`,
+      error
+    );
+
+    // Return default DTO in case of error
+    return { eventDTO: createDefaultEventDTO(_eventId) };
   }
+}
+
+/**
+ * Creates a default or empty EventDTO object when no data is found.
+ */
+function createDefaultEventDTO(_eventId) {
+  return {
+    eventId: _eventId, // Keep the event ID as provided
+    startDate: "0", // Default start date (can be 0 for non-existent event)
+    sport: "0", // Default sport (non-existent or unknown)
+    total_A: "0", // Default total A (no stakes)
+    total_B: "0", // Default total B (no stakes)
+    total: "0", // Default total (no total stakes)
+    winner: "0", // Default winner (unknown)
+    eventState: "0", // Default state (not started or unknown)
+    playerStake: {
+      // Default player stake
+      amount: "0", // No stake amount
+      team: "0", // No team chosen
+    },
+    open: false, // Event not open
+    close: false, // Event not closed
+    payout: false, // No payout
+    oddsA: 0, // Default odds for team A
+    oddsB: 0, // Default odds for team B
+    totalAshort: "0", // Default shortened total for team A
+    totalBshort: "0", // Default shortened total for team B
+    expected: "0", // Default expected value
+    ratio: "0.00%", // Default ratio
+    totalStakeUsd: "$0.00 USD", // Default total stake in USD
+    commissionInATON: "0 ATON", // Default commission in ATON
+  };
 }
 
 /**

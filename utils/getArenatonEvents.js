@@ -5,9 +5,12 @@ const contractABI = [
     type: "function",
     name: "getEvents",
     inputs: [
-      { name: "_eventId", type: "string", internalType: "string" },
       { name: "_sport", type: "uint8", internalType: "uint8" },
-      { name: "_step", type: "uint8", internalType: "enum AStructs.Step" },
+      {
+        name: "_step",
+        type: "uint8",
+        internalType: "enum AStructs.Step",
+      },
       { name: "_player", type: "address", internalType: "address" },
     ],
     outputs: [
@@ -47,7 +50,6 @@ const contractABI = [
 ];
 
 async function getArenatonEvents(
-  _eventId = "",
   _sport,
   _step,
   _player = "0x0000000000000000000000000000000000000000",
@@ -64,21 +66,14 @@ async function getArenatonEvents(
       provider
     );
 
-    console.log("Fetching events with parameters:", {
-      _eventId,
-      _sport,
-      _step,
-      _player,
-    });
-
     let activeEvents;
     // Fetching based on _eventId
-    if (_eventId) {
-      activeEvents = await contract.getEvents(_eventId, _sport, _step, _player);
-    } else {
-      // Fetch multiple events if _eventId is empty
-      activeEvents = await contract.getEvents("", _sport, _step, _player);
+    // Fetch multiple events if _eventId is empty
+    let sppp = _sport;
+    if (_sport == "-1") {
+      sppp = 0;
     }
+    activeEvents = await contract.getEvents(sppp, _step, _player);
 
     console.log("Active Events:", activeEvents);
 

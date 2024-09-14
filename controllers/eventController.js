@@ -53,9 +53,9 @@ exports.getEvents = async (req, res) => {
       //   (pageNo = 1),
       //   (pageSize = 12);
       const activeEvents = await getArenatonEvents(
-        "",
         sport,
         0,
+        playerAddress,
         sort,
         pageNo,
         pageSize
