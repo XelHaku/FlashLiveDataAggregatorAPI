@@ -64,7 +64,7 @@ const contractABI = [
 
 async function playerSummary(addresses) {
   try {
-    const contractAddress = "0x30a107e95Ee725D136D8B08EFC47050041d7A408";
+    const contractAddress = "0x3f589F0F74fFdE1A474DD5261921AcFB76Aa0eE5";
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const contract = new ethers.Contract(
       contractAddress,

@@ -6,25 +6,24 @@ const { MatchOddsByEventId } = require("../flashLive/MatchOddsByEventId");
 const { scorePartValidation } = require("../flashLive/scorePartValidation");
 
 const { getEventDTO } = require("../utils/getEventDTO");
-const { listArenatonEvents } = require("../utils/listArenatonEvents");
+const { getArenatonEvents } = require("../utils/getArenatonEvents");
 const NewsModel = require("../models/newsModel");
 const pageSize = 12;
 
 /**
  * Fetches a list of events based on various filters provided in the request query.
- * Supports pagination and sorting, and can filter by active events, tournament, sport, and country.
+ * Supports pagination, sorting, and filtering by active events, tournament, sport, and country.
  * Each event is enriched with its corresponding event details (DTO) before returning the response.
  *
  * @param {Object} req - Express request object containing the query parameters.
  * @param {Object} res - Express response object used to send the response.
  */
 exports.getEvents = async (req, res) => {
-  // Destructure query parameters from the request
   const {
     id,
     active,
     tournament,
-    sport = "-1",
+    sport = null,
     country,
     pageNo,
     sort = "asc",
@@ -32,38 +31,54 @@ exports.getEvents = async (req, res) => {
     playerAddress,
   } = req.query;
 
-  // Set default values for pagination
-  const page = pageNo ? parseInt(pageNo) : 1;
-  const size = parseInt(pageSize);
+  const page = pageNo ? parseInt(pageNo, 10) : 1;
+  const size = parseInt(pageSize, 10);
   const skip = (page - 1) * size;
-
-  // Determine sort order based on the 'sort' query parameter
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
-  try {
-    let eventsList, totalItems;
+  // Local variable to track whether we are fetching active events
+  let isFetchingActiveEvents = active === "true";
 
-    // Fetch active events if the 'active' query parameter is set
-    if (active === "true") {
-      const activeEvents = await listArenatonEvents(
+  try {
+    let eventsList = [];
+    let totalItems = 0;
+
+    // Handle active events
+    if (isFetchingActiveEvents) {
+      // (_eventId = ""),
+      //   _sport,
+      //   _step,
+      //   (_player = "0x0000000000000000000000220000000000000001"),
+      //   (sort = "asc"),
+      //   (pageNo = 1),
+      //   (pageSize = 12);
+      const activeEvents = await getArenatonEvents(
+        "",
         sport,
         0,
         sort,
         pageNo,
         pageSize
       );
-      const result = await getEventsByList(
-        activeEvents,
-        skip,
-        size,
-        sortOrder,
-        true
-      );
-      eventsList = result.events;
-      totalItems = result.totalCount;
+
+      if (activeEvents.length === 0) {
+        // No active events found, move to other filters
+        isFetchingActiveEvents = false;
+      } else {
+        const result = await getEventsByList(
+          activeEvents,
+          skip,
+          size,
+          sortOrder,
+          true
+        );
+        eventsList = result.events;
+        totalItems = result.totalCount;
+      }
     }
-    // Fetch events by tournament if the 'tournament' query parameter is set
-    else if (tournament) {
+
+    // Handle tournament filter if no active events were fetched
+    if (tournament && !isFetchingActiveEvents) {
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -73,14 +88,11 @@ exports.getEvents = async (req, res) => {
       eventsList = result.events;
       totalItems = result.totalCount;
     }
-    // Fetch specific events by their IDs if the 'id' query parameter is set
-    else if (id) {
-      const idArray = Array.isArray(id) ? id : [id];
-      let shortDTO = true;
-      if (idArray.length == 1) {
-        shortDTO = false;
-      }
 
+    // Handle specific event IDs
+    else if (id && !isFetchingActiveEvents) {
+      const idArray = Array.isArray(id) ? id : [id];
+      const shortDTO = idArray.length > 1;
       const result = await getEventsByList(
         idArray,
         skip,
@@ -91,8 +103,9 @@ exports.getEvents = async (req, res) => {
       eventsList = result.events;
       totalItems = result.totalCount;
     }
-    // Fetch events by sport and optionally filter by country
-    else if (sport) {
+
+    // Handle sport and country filters
+    else if (sport && !isFetchingActiveEvents) {
       const result = country
         ? await getEventsBySportAndCountry(
             sport,
@@ -106,7 +119,7 @@ exports.getEvents = async (req, res) => {
       totalItems = result.totalCount;
     }
 
-    // If no events are found, return a 404 response
+    // If no valid query parameters were provided, return a bad request error
     if (!eventsList || eventsList.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -114,37 +127,57 @@ exports.getEvents = async (req, res) => {
       });
     }
 
-    let events = [];
-
-    // Enrich each event with its corresponding DTO (Data Transfer Object) for additional details
+    // Enrich events with event DTO
     const enrichedEvents = await Promise.all(
-      eventsList.map(async (event) => {
-        const { eventDTO } = await getEventDTO(event.EVENT_ID, playerAddress);
+      eventsList.map(async (eventFlash) => {
+        const { eventDTO } = await getEventDTO(
+          eventFlash.EVENT_ID,
+          playerAddress
+        );
 
-        eventDTO.eventState;
-        return { eventFlash: event, eventDTO };
+        // Set event state based on its properties
+        switch (eventFlash.STAGE) {
+          case "FINISHED":
+          case "CANCELED":
+          case "POSTPONED":
+            eventDTO.eventState = "3";
+            break;
+          case "SCHEDULED":
+            eventDTO.eventState = "1";
+            break;
+          default:
+            if (
+              eventFlash.START_UTIME < Math.floor(Date.now() / 1000) &&
+              eventFlash.WINNER === "-1"
+            ) {
+              eventDTO.eventState = "2";
+            }
+            if (eventDTO.payout) {
+              eventDTO.eventState = "4";
+            }
+            break;
+        }
+
+        return { eventFlash, eventDTO };
       })
     );
 
-    events.push(...enrichedEvents);
-
-    // Calculate the total number of pages for pagination
     const totalPages = Math.ceil(totalItems / size);
 
-    // Send the response with the events and pagination details
+    // Send success response with events and pagination
     res.status(200).json({
       status: "success",
-      data: { events },
+      data: { events: enrichedEvents },
       pagination: {
         currentPage: page,
         pageSize: size,
         totalItems,
         totalPages,
+        active: isFetchingActiveEvents,
       },
     });
   } catch (error) {
-    // Handle any errors that occur during the process and send a 500 response
-    console.error("Error in getEvents:", error);
+    console.error("Error in getEvents:", error.stack);
     res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -340,16 +373,19 @@ async function updateEvent(eventId, shortDTO = true) {
   const currentTime = Math.floor(Date.now() / 1000);
 
   // Check if the event needs to be updated based on the lastUpdated timestamp
-  if (!event.lastUpdated || event.lastUpdated < currentTime - 10 * 60) {
+  if (
+    !event.lastUpdated ||
+    (event.lastUpdated < currentTime - 10 * 60 && !shortDTO)
+  ) {
     // Fetch the latest event details from an external source
     let newEvent = await EventById(eventId);
 
-    // Handle cases where the event is not found or marked as cancelled
+    // Handle cases where the event is not found or marked as CANCELED
     if (newEvent === 404 || !newEvent) {
-      // Update the existing event to indicate it is cancelled if not found
+      // Update the existing event to indicate it is CANCELED if not found
       await Event.findOneAndUpdate(
         { EVENT_ID: eventId },
-        { STAGE_TYPE: "CANCELLED", STAGE: "CANCELLED" },
+        { STAGE_TYPE: "CANCELED", STAGE: "CANCELED" },
         {
           upsert: true,
           new: true,

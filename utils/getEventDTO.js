@@ -2,6 +2,7 @@ const { ethers } = require("ethers");
 
 const ARENATON_CONTRACT = process.env.ARENATON_CONTRACT;
 const RPC_URL = process.env.RPC_URL;
+const ETH_TO_USD = 2615; // Current ETH to USD conversion rate
 
 // Define the contract ABI with the correct function signature
 const contractABI = [
@@ -91,6 +92,9 @@ function mapEventDTO(obj, _eventId) {
       ? ((parseFloat(expected) / stakeAmount) * 100).toFixed(2) + "%"
       : "0.00%";
 
+  const totalStakeUsd = calculateTotalStakeInUsd(totalA, totalB);
+  const commissionInATON = calculateCommissionInATON(totalA, totalB);
+
   return {
     eventId: _eventId,
     startDate: safeToString(obj[1]),
@@ -113,6 +117,8 @@ function mapEventDTO(obj, _eventId) {
     totalBshort: formatShortTotal(safeToString(obj[4])),
     expected,
     ratio,
+    totalStakeUsd,
+    commissionInATON,
   };
 }
 
@@ -125,10 +131,6 @@ function calculateExpected(team, stakeAmount, totalA, totalB) {
   const parsedStakeAmount = BigInt(stakeAmount.toString());
   const totalABigInt = BigInt(totalA);
   const totalBBigInt = BigInt(totalB);
-
-  console.log("stakeAmount", parsedStakeAmount.toString());
-  console.log("totalA", totalA);
-  console.log("totalB", totalB);
 
   if (team.toString() === "1" && totalABigInt > BigInt(0)) {
     expected = ethers.formatEther(
@@ -176,6 +178,25 @@ function formatShortTotal(value) {
 }
 
 /**
+ * Calculates total stake in USD using the ETH to USD conversion rate.
+ */
+function calculateTotalStakeInUsd(totalA, totalB) {
+  const totalStakeInEther = parseFloat(
+    ethers.formatEther(BigInt(totalA + totalB))
+  );
+  return `$${(totalStakeInEther * ETH_TO_USD).toFixed(2)} USD`;
+}
+
+/**
+ * Calculates the 2% commission in ATON for total stakes.
+ */
+function calculateCommissionInATON(totalA, totalB) {
+  const totalStake = BigInt(totalA + totalB);
+  const commission = (totalStake * BigInt(2)) / BigInt(100); // 2% commission
+  return ethers.formatEther(commission) + " ATON";
+}
+
+/**
  * Creates a default EventDTO object when no data is found.
  */
 function createDefaultEventDTO(_eventId) {
@@ -198,6 +219,8 @@ function createDefaultEventDTO(_eventId) {
     totalBshort: "0",
     expected: "0",
     ratio: "0.0%",
+    totalStakeUsd: "$0.00 USD",
+    commissionInATON: "0 ATON",
   };
 }
 
