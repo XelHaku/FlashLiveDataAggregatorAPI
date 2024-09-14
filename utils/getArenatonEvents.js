@@ -45,6 +45,7 @@ const contractABI = [
     stateMutability: "view",
   },
 ];
+
 async function getArenatonEvents(
   _eventId = "",
   _sport,
@@ -71,17 +72,12 @@ async function getArenatonEvents(
     });
 
     let activeEvents;
-    // If _eventId is provided, fetch a single event
-    if (_eventId && _eventId.trim() !== "") {
-      activeEvents = await contract.getEvents(_eventId, 0, 0, _player);
+    // Fetching based on _eventId
+    if (_eventId) {
+      activeEvents = await contract.getEvents(_eventId, _sport, _step, _player);
     } else {
-      // Otherwise, fetch multiple events using _sport, _step, and _player filters
-      activeEvents = await contract.getEvents(
-        undefined,
-        _sport,
-        _step,
-        _player
-      );
+      // Fetch multiple events if _eventId is empty
+      activeEvents = await contract.getEvents("", _sport, _step, _player);
     }
 
     console.log("Active Events:", activeEvents);
