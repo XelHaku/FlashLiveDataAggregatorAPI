@@ -67,35 +67,35 @@ async function getArenatonEvents(
     );
 
     let activeEvents;
-    // Fetching based on _eventId
-    // Fetch multiple events if _eventId is empty
     let sppp = _sport;
-    if (_sport == "-1") {
+    if (_sport === "-1") {
       sppp = 0;
     }
     activeEvents = await contract.getEvents(sppp, _step, _player);
 
-    console.log("Active Events:", activeEvents);
+    if (!activeEvents || activeEvents.length === 0) {
+      throw new Error("No events found");
+    }
+
+    console.log("Active events:", activeEvents);
+
+    // Clone the immutable result array into a mutable structure
+    const clonedEvents = activeEvents.map((event) => [...event]);
 
     // Sort by total (total_A + total_B) and then by startDate
-    const sortedEvents = activeEvents.slice().sort((a, b) => {
-      const totalA = a.total_A.add(a.total_B);
-      const totalB = b.total_A.add(b.total_B);
+    const sortedEvents = clonedEvents.sort((a, b) => {
+      const totalA = BigInt(a[3] ?? 0) + BigInt(a[4] ?? 0); // total_A + total_B
+      const totalB = BigInt(b[3] ?? 0) + BigInt(b[4] ?? 0); // total_A + total_B
 
-      const totalComparison = totalA.gt(totalB)
-        ? 1
-        : totalA.lt(totalB)
-        ? -1
-        : 0;
+      const totalComparison = totalA > totalB ? 1 : totalA < totalB ? -1 : 0;
       if (totalComparison !== 0) {
         return sort === "asc" ? totalComparison : -totalComparison;
       }
 
-      const dateComparison = a.startDate.gt(b.startDate)
-        ? 1
-        : a.startDate.lt(b.startDate)
-        ? -1
-        : 0;
+      // Compare by startDate (index 1)
+      const dateA = BigInt(a[1] ?? 0);
+      const dateB = BigInt(b[1] ?? 0);
+      const dateComparison = dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
       return sort === "asc" ? dateComparison : -dateComparison;
     });
 
@@ -108,8 +108,8 @@ async function getArenatonEvents(
       startIndex + pageSize
     );
 
-    // Extract eventId from paginated events
-    const activeEventsIdList = paginatedEvents.map((event) => event.eventId);
+    // Extract eventId (index 0) from paginated events
+    const activeEventsIdList = paginatedEvents.map((event) => event[0]);
 
     console.log("Event IDs:", activeEventsIdList);
 
@@ -120,7 +120,7 @@ async function getArenatonEvents(
       transaction: error.transaction,
       data: error.data,
     });
-    throw error;
+    return [];
   }
 }
 
