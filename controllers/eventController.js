@@ -7,6 +7,7 @@ const { scorePartValidation } = require("../flashLive/scorePartValidation");
 
 const { getEventDTO } = require("../utils/getEventDTO");
 const { getArenatonEvents } = require("../utils/getArenatonEvents");
+const { getArenatonPlayerEvents } = require("../utils/getArenatonPlayerEvents");
 const NewsModel = require("../models/newsModel");
 const pageSize = 12;
 
@@ -29,6 +30,7 @@ exports.getEvents = async (req, res) => {
     sort = "asc",
     pageSize = 12,
     playerAddress,
+    player,
   } = req.query;
 
   const page = pageNo ? parseInt(pageNo, 10) : 1;
@@ -38,21 +40,15 @@ exports.getEvents = async (req, res) => {
 
   // Local variable to track whether we are fetching active events
   let isFetchingActiveEvents = active === "true";
+  let isFetchingPlayerEvents = player === "true";
 
   try {
     let eventsList = [];
     let totalItems = 0;
 
     // Handle active events
-    if (isFetchingActiveEvents) {
-      // (_eventId = ""),
-      //   _sport,
-      //   _step,
-      //   (_player = "0x0000000000000000000000220000000000000001"),
-      //   (sort = "asc"),
-      //   (pageNo = 1),
-      //   (pageSize = 12);
-      const activeEvents = await getArenatonEvents(
+    if (isFetchingActiveEvents && isFetchingPlayerEvents) {
+      const activeEvents = await getArenatonPlayerEvents(
         sport,
         0,
         playerAddress,
