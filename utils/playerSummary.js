@@ -37,6 +37,7 @@ const contractABI = [
     ],
     stateMutability: "view",
   },
+  totalSupply,
 ];
 
 async function playerSummary(playerAddress) {
@@ -52,6 +53,9 @@ async function playerSummary(playerAddress) {
     // Call the playerSummary function from the contract
     const [account, totalCommission, accumulatedCommission] =
       await contract.playerSummary(playerAddress);
+
+
+       const [totalSupply] = await contract.totalSupply();
 
     console.log(
       "Fetching player summary for address:",

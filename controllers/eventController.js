@@ -9,7 +9,7 @@ const { getEventDTO } = require("../utils/getEventDTO");
 const { getArenatonEvents } = require("../utils/getArenatonEvents");
 const { getArenatonPlayerEvents } = require("../utils/getArenatonPlayerEvents");
 const NewsModel = require("../models/newsModel");
-const pageSize = 12;
+const pageSizeDefault = 12;
 
 /**
  * Fetches a list of events based on various filters provided in the request query.
@@ -26,55 +26,96 @@ exports.getEvents = async (req, res) => {
     tournament,
     sport = null,
     country,
-    pageNo,
+    pageNo = 1,
     sort = "asc",
-    pageSize = 12,
+    pageSize = pageSizeDefault,
     playerAddress,
     player,
   } = req.query;
 
-  const page = pageNo ? parseInt(pageNo, 10) : 1;
-  const size = parseInt(pageSize, 10);
+  const page = parseInt(pageNo, 10) || 1;
+  const size = parseInt(pageSize, 10) || pageSizeDefault;
   const skip = (page - 1) * size;
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
-
-  // Local variable to track whether we are fetching active events
-  let isFetchingActiveEvents = active === "true";
-  let isFetchingPlayerEvents = player === "true";
 
   try {
     let eventsList = [];
     let totalItems = 0;
 
-    // Handle active events
-    if (isFetchingActiveEvents && isFetchingPlayerEvents) {
-      const activeEvents = await getArenatonPlayerEvents(
+    // Determine fetch priority based on query parameters
+    if (player === "true" && playerAddress) {
+      // Fetch player-specific events
+      const playerEventIds = await getArenatonPlayerEvents(
+        playerAddress,
+        sport,
+        active === "true",
+        size,
+        page
+      );
+
+      if (playerEventIds && playerEventIds.length) {
+        const result = await getEventsByList(
+          playerEventIds,
+          skip,
+          size,
+          sortOrder
+        );
+        eventsList = result.events;
+        totalItems = result.totalCount;
+      } else {
+        // No player events found; return empty result with status 200
+        return res.status(200).json({
+          status: "success",
+          data: { events: [] },
+          pagination: {
+            currentPage: page,
+            pageSize: 0,
+            totalItems: 0,
+            totalPages: 1,
+            active: active === "true",
+            player: true,
+            sport: sport || "-1",
+          },
+        });
+      }
+    } else if (active === "true") {
+      // Fetch active events
+      const activeEventIds = await getArenatonEvents(
         sport,
         0,
         playerAddress,
         sort,
-        pageNo,
-        pageSize
+        page,
+        size
       );
 
-      if (activeEvents.length === 0) {
-        // No active events found, move to other filters
-        isFetchingActiveEvents = false;
-      } else {
+      if (activeEventIds && activeEventIds.length) {
         const result = await getEventsByList(
-          activeEvents,
+          activeEventIds,
           skip,
           size,
-          sortOrder,
-          true
+          sortOrder
         );
         eventsList = result.events;
         totalItems = result.totalCount;
+      } else {
+        // No active events found
+        return res.status(200).json({
+          status: "success",
+          data: { events: [] },
+          pagination: {
+            currentPage: page,
+            pageSize: 0,
+            totalItems: 0,
+            totalPages: 1,
+            active: "true",
+            player: "false",
+            sport: sport || "-1",
+          },
+        });
       }
-    }
-
-    // Handle tournament filter if no active events were fetched
-    if (tournament && !isFetchingActiveEvents) {
+    } else if (tournament) {
+      // Fetch events by tournament
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -83,25 +124,14 @@ exports.getEvents = async (req, res) => {
       );
       eventsList = result.events;
       totalItems = result.totalCount;
-    }
-
-    // Handle specific event IDs
-    else if (id && !isFetchingActiveEvents) {
+    } else if (id) {
+      // Fetch events by specific IDs
       const idArray = Array.isArray(id) ? id : [id];
-      const shortDTO = idArray.length > 1;
-      const result = await getEventsByList(
-        idArray,
-        skip,
-        size,
-        sortOrder,
-        shortDTO
-      );
+      const result = await getEventsByList(idArray, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
-    }
-
-    // Handle sport and country filters
-    else if (sport && !isFetchingActiveEvents) {
+    } else if (sport) {
+      // Fetch events by sport (and country if provided)
       const result = country
         ? await getEventsBySportAndCountry(
             sport,
@@ -113,17 +143,23 @@ exports.getEvents = async (req, res) => {
         : await getEventsBySport(sport, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
+    } else {
+      // No valid filters provided
+      return res.status(400).json({
+        status: "error",
+        message: "No valid filters provided",
+      });
     }
 
-    // If no valid query parameters were provided, return a bad request error
-    if (!eventsList || eventsList.length === 0) {
+    // Handle case where no events are found
+    if (!eventsList.length) {
       return res.status(404).json({
         status: "error",
         message: "No events found",
       });
     }
 
-    // Enrich events with event DTO
+    // Enrich events with event DTOs concurrently
     const enrichedEvents = await Promise.all(
       eventsList.map(async (eventFlash) => {
         const { eventDTO } = await getEventDTO(
@@ -131,28 +167,31 @@ exports.getEvents = async (req, res) => {
           playerAddress
         );
 
-        // Set event state based on its properties
-        switch (eventFlash.STAGE) {
-          case "FINISHED":
-          case "CANCELED":
-          case "POSTPONED":
-            eventDTO.eventState = "3";
-            break;
-          case "SCHEDULED":
-            eventDTO.eventState = "1";
-            break;
-          default:
-            if (
-              eventFlash.START_UTIME < Math.floor(Date.now() / 1000) &&
-              eventFlash.WINNER === "-1"
-            ) {
-              eventDTO.eventState = "2";
-            }
-            if (eventDTO.payout) {
-              eventDTO.eventState = "4";
-            }
-            break;
+        if (!eventFlash.WINNER) {
+          eventFlash.WINNER = "-1";
         }
+        // Determine event state
+        const currentTime = Math.floor(Date.now() / 1000);
+        let eventState = "0"; // Default state: not opened
+
+        if (["FINISHED", "CANCELED", "POSTPONED"].includes(eventFlash.STAGE)) {
+          eventState = "3"; // Event is completed or canceled
+        } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
+          eventState = "1"; // Event is scheduled
+        } else if (eventFlash.START_UTIME < currentTime) {
+          eventState = "2"; // Event is live
+        } else if (
+          eventFlash.START_UTIME < currentTime &&
+          eventFlash.WINNER !== "-1"
+        ) {
+          eventState = "3"; // Event is live
+        }
+
+        if (eventDTO.payout) {
+          eventState = "4"; // Payout is completed
+        }
+
+        eventDTO.eventState = eventState;
 
         return { eventFlash, eventDTO };
       })
@@ -160,7 +199,7 @@ exports.getEvents = async (req, res) => {
 
     const totalPages = Math.ceil(totalItems / size);
 
-    // Send success response with events and pagination
+    // Send successful response with events and pagination info
     res.status(200).json({
       status: "success",
       data: { events: enrichedEvents },
@@ -169,11 +208,13 @@ exports.getEvents = async (req, res) => {
         pageSize: size,
         totalItems,
         totalPages,
-        active: isFetchingActiveEvents,
+        active: active === "true",
+        player: player === "true",
+        sport: sport || "-1",
       },
     });
   } catch (error) {
-    console.error("Error in getEvents:", error.stack);
+    console.error("Error in getEvents:", error);
     res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -301,6 +342,9 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
 
   try {
     const events = [];
+    if (ids.length < 3) {
+      shortDTO = false;
+    }
 
     for (const id of ids) {
       // Update event and add it to the events array
@@ -431,21 +475,31 @@ async function updateEvent(eventId, shortDTO = true) {
 }
 
 // getSearchEvents function
+// getSearchEvents function
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
-  const page = parseInt(pageNo);
-  const size = parseInt(pageSize);
-  const skip = (page - 1) * size;
+  const page = parseInt(pageNo, 10);
+  const size = parseInt(pageSize, 10);
 
   try {
-    if (!search_text || search_text.length < 3) {
+    // Validate search_text
+    if (!search_text || search_text.length < 4) {
       return res.status(400).json({
         status: "error",
         message: "Search text must be at least 4 characters long",
       });
     }
 
-    const searchRegex = new RegExp(search_text, "i");
+    // Escape special regex characters to prevent ReDoS attacks
+    const escapedSearchText = search_text.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+    // Build the regex
+    const searchRegex = new RegExp(escapedSearchText, "i");
+
+    // Build the query
     const query = {
       $and: [
         {
@@ -467,42 +521,51 @@ exports.getSearchEvents = async (req, res) => {
             { TOURNAMENT_ID: searchRegex },
           ],
         },
-        { START_UTIME: { $gt: Math.floor(Date.now() / 1000) } }, // Co Added condition to only query events with START_UTIME > 1730908800
+        { START_UTIME: { $gt: Math.floor(Date.now() / 1000) } }, // Only future events
       ],
     };
 
+    // Filter by sport if provided
     if (sport && sport !== "-1") {
-      query.$and.push({ SPORT: sport });
+      query.$and.push({ SPORT: parseInt(sport, 10) });
     }
 
-    const events = await Event.find(query)
-      .select({
-        EVENT_ID: 1,
-        NAME: 1,
-        CATEGORY_NAME: 1,
-        COUNTRY_NAME: 1,
-        HOME_NAME: 1,
-        AWAY_NAME: 1,
-        HOME_PARTICIPANT_NAME_ONE: 1,
-        AWAY_PARTICIPANT_NAME_ONE: 1,
-        START_UTIME: 1,
-        STAGE_TYPE: 1,
-        HOME_SCORE_CURRENT: 1,
-        AWAY_SCORE_CURRENT: 1,
-        ODDS: 1,
-        HOME_IMAGES: 1,
-        AWAY_IMAGES: 1,
-        SHORTNAME_HOME: 1,
-        SHORTNAME_AWAY: 1,
-        SHORT_NAME: 1,
-        TOURNAMENT_ID: 1,
-      })
-      .sort({ START_UTIME: 1 })
-      .skip(skip)
-      .limit(size);
+    // Fields to select
+    const fieldsToSelect = {
+      EVENT_ID: 1,
+      NAME: 1,
+      CATEGORY_NAME: 1,
+      COUNTRY_NAME: 1,
+      HOME_NAME: 1,
+      AWAY_NAME: 1,
+      HOME_PARTICIPANT_NAME_ONE: 1,
+      AWAY_PARTICIPANT_NAME_ONE: 1,
+      START_UTIME: 1,
+      STAGE_TYPE: 1,
+      HOME_SCORE_CURRENT: 1,
+      AWAY_SCORE_CURRENT: 1,
+      ODDS: 1,
+      HOME_IMAGES: 1,
+      AWAY_IMAGES: 1,
+      SHORTNAME_HOME: 1,
+      SHORTNAME_AWAY: 1,
+      SHORT_NAME: 1,
+      TOURNAMENT_ID: 1,
+    };
 
-    const totalItems = await Event.countDocuments(query);
-    const totalPages = Math.ceil(totalItems / size);
+    // Ensure indexes exist on the fields used in queries
+    // Indexes should be created on START_UTIME, SPORT, and fields used in the $or condition
+
+    // Perform the query and count in parallel
+    const [events, totalItems] = await Promise.all([
+      Event.find(query)
+        .select(fieldsToSelect)
+        .sort({ START_UTIME: 1 })
+        .skip((page - 1) * size)
+        .limit(size)
+        .lean(), // Use lean for better performance
+      Event.countDocuments(query),
+    ]);
 
     if (events.length === 0) {
       return res.status(404).json({
@@ -510,6 +573,8 @@ exports.getSearchEvents = async (req, res) => {
         message: "No events found matching the search criteria",
       });
     }
+
+    const totalPages = Math.ceil(totalItems / size);
 
     res.status(200).json({
       status: "success",

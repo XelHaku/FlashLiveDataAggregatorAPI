@@ -111,7 +111,7 @@ async function getArenatonEvents(
     // Extract eventId (index 0) from paginated events
     const activeEventsIdList = paginatedEvents.map((event) => event[0]);
 
-    console.log("Event IDs:", activeEventsIdList);
+    console.log("getArenatonEvents Event IDs:", activeEventsIdList);
 
     return activeEventsIdList;
   } catch (error) {

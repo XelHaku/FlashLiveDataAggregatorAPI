@@ -97,15 +97,15 @@ function mapEventDTO(eventRawDTO, _eventId) {
     eventId: _eventId,
     startDate: eventRawDTO.startDate.toString(),
     sport: eventRawDTO.sport.toString(),
-    total_A: totalA.toFixed(6),
-    total_B: totalB.toFixed(6),
+    total_A: ethers.formatEther(eventRawDTO.total_A),
+    total_B: ethers.formatEther(eventRawDTO.total_B),
     total: ethers.formatEther(eventRawDTO.total),
     totalStakeUsd: `$${(
       ethers.formatEther(eventRawDTO.total) * ETH_TO_USD
     ).toFixed(2)} USD~`,
     winner: eventRawDTO.winner.toString(),
     playerStake: {
-      amount: playerStakeAmount.toFixed(6),
+      amount: ethers.formatEther(eventRawDTO.playerStake.amount),
       team: eventRawDTO.playerStake.team.toString(),
     },
     open: eventRawDTO.active,
