@@ -70,6 +70,7 @@ async function playerSummary(playerAddress) {
       ...formattedAccount,
       totalCommission: formatBalance(totalCommission), // Format with 18 decimals
       accumulatedCommission: formatBalance(accumulatedCommission), // Format with 18 decimals
+      totalSupply: formatBalance(totalSupply), // Format with 18 decimals
     };
   } catch (error) {
     console.error("Failed to fetch player summary:", error.message);
