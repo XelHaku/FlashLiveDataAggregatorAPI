@@ -30,6 +30,7 @@ exports.getPlayerSummary = async (req, res) => {
         atonShortBalance: playerSummaryData.atonShortBalance,
         totalCommission: playerSummaryData.totalCommission,
         accumulatedCommission: playerSummaryData.accumulatedCommission,
+        totalSupply: playerSummaryData.totalSupply,
       },
     };
 
