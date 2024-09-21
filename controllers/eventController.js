@@ -424,7 +424,7 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
 async function updateEvent(eventId, shortDTO = true) {
   // Construct the query object based on shortDTO
   const queryFields = shortDTO
-    ? { NEWS: 0, VIDEOS: 0, ODDS: 0 } // Exclude these fields for shortDTO
+    ? { NEWS: 0, VIDEOS: 0 } // Exclude these fields for shortDTO
     : {}; // Include all fields if shortDTO is false
 
   // Attempt to find the event in the database
@@ -450,7 +450,7 @@ async function updateEvent(eventId, shortDTO = true) {
   // Check if the event needs to be updated based on the lastUpdated timestamp
   if (
     !event.lastUpdated ||
-    event.lastUpdated < currentTime - 10 * 60 ||
+    event.lastUpdated < currentTime - 30 * 60 ||
     !shortDTO
   ) {
     // Fetch the latest event details from the external source
@@ -475,34 +475,37 @@ async function updateEvent(eventId, shortDTO = true) {
 
     // Process and update news, videos, and odds only if shortDTO is false
     if (!shortDTO) {
-      const [news, videos, matchOdds] = await Promise.all([
+      const [news, videos] = await Promise.all([
         NewsByEventId(eventId).catch((error) =>
           console.error("Error fetching news:", error)
         ),
         VideosByEventId(eventId).catch((error) =>
           console.error("Error fetching videos:", error)
         ),
-        MatchOddsByEventId(eventId).catch((error) =>
-          console.error("Error fetching match odds:", error)
-        ),
       ]);
 
       if (news) newEvent.NEWS = news;
       if (videos) newEvent.VIDEOS = videos;
-      if (matchOdds) {
-        console.log("MatchOddsByEventId", matchOdds);
-        newEvent.ODDS = matchOdds;
-      } else {
-        newEvent.ODDS = [];
-      }
     }
 
+    const [matchOdds] = await Promise.all([
+      MatchOddsByEventId(eventId).catch((error) =>
+        console.error("Error fetching match odds:", error)
+      ),
+    ]);
+
+    if (matchOdds) {
+      console.log("MatchOddsByEventId", matchOdds);
+      newEvent.ODDS = matchOdds;
+    } else {
+      newEvent.ODDS = [];
+    }
     // Ensure required fields are included in the new event
     newEvent.EVENT_ID = eventId; // Assign the eventId to the new event object
     newEvent.lastUpdated = currentTime; // Update the lastUpdated timestamp
 
     // Save the new event to the database
-     await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
+    await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
       upsert: true, // Create a new document if it doesn't exist
       new: true, // Return the updated document
       setDefaultsOnInsert: true, // Apply default values when inserting
