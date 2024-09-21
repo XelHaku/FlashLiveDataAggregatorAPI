@@ -33,18 +33,28 @@ exports.getEvents = async (req, res) => {
     player,
   } = req.query;
 
+  console.log(
+    `Received request with query params: ${JSON.stringify(req.query)}`
+  );
+
   const page = parseInt(pageNo, 10) || 1;
   const size = parseInt(pageSize, 10) || pageSizeDefault;
   const skip = (page - 1) * size;
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
+  console.log(
+    `Pagination - Page: ${page}, Page Size: ${size}, Skip: ${skip}, Sort Order: ${sortOrder}`
+  );
+
   try {
     let eventsList = [];
     let totalItems = 0;
 
-    // Determine fetch priority based on query parameters
     if (player === "true" && playerAddress) {
-      // Fetch player-specific events
+      console.log(
+        `Fetching player-specific events for player address: ${playerAddress}`
+      );
+
       const playerEventIds = await getArenatonPlayerEvents(
         playerAddress,
         sport,
@@ -54,6 +64,10 @@ exports.getEvents = async (req, res) => {
       );
 
       if (playerEventIds && playerEventIds.length) {
+        console.log(
+          `Player-specific events found: ${playerEventIds.length} events`
+        );
+
         const result = await getEventsByList(
           playerEventIds,
           skip,
@@ -63,7 +77,10 @@ exports.getEvents = async (req, res) => {
         eventsList = result.events;
         totalItems = result.totalCount;
       } else {
-        // No player events found; return empty result with status 200
+        console.log(
+          `No player-specific events found for address: ${playerAddress}`
+        );
+
         return res.status(200).json({
           status: "success",
           data: { events: [] },
@@ -79,7 +96,8 @@ exports.getEvents = async (req, res) => {
         });
       }
     } else if (active === "true") {
-      // Fetch active events
+      console.log("Fetching active events...");
+
       const activeEventIds = await getArenatonEvents(
         sport,
         0,
@@ -90,6 +108,8 @@ exports.getEvents = async (req, res) => {
       );
 
       if (activeEventIds && activeEventIds.length) {
+        console.log(`Active events found: ${activeEventIds.length} events`);
+
         const result = await getEventsByList(
           activeEventIds,
           skip,
@@ -99,7 +119,8 @@ exports.getEvents = async (req, res) => {
         eventsList = result.events;
         totalItems = result.totalCount;
       } else {
-        // No active events found
+        console.log("No active events found");
+
         return res.status(200).json({
           status: "success",
           data: { events: [] },
@@ -115,7 +136,8 @@ exports.getEvents = async (req, res) => {
         });
       }
     } else if (tournament) {
-      // Fetch events by tournament
+      console.log(`Fetching events by tournament: ${tournament}`);
+
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -125,13 +147,17 @@ exports.getEvents = async (req, res) => {
       eventsList = result.events;
       totalItems = result.totalCount;
     } else if (id) {
-      // Fetch events by specific IDs
+      console.log(`Fetching events by ID: ${id}`);
+
       const idArray = Array.isArray(id) ? id : [id];
       const result = await getEventsByList(idArray, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
     } else if (sport) {
-      // Fetch events by sport (and country if provided)
+      console.log(
+        `Fetching events by sport: ${sport} and country: ${country || "N/A"}`
+      );
+
       const result = country
         ? await getEventsBySportAndCountry(
             sport,
@@ -144,22 +170,25 @@ exports.getEvents = async (req, res) => {
       eventsList = result.events;
       totalItems = result.totalCount;
     } else {
-      // No valid filters provided
+      console.log("No valid filters provided");
+
       return res.status(400).json({
         status: "error",
         message: "No valid filters provided",
       });
     }
 
-    // Handle case where no events are found
     if (!eventsList.length) {
+      console.log("No events found after applying filters");
+
       return res.status(404).json({
         status: "error",
         message: "No events found",
       });
     }
 
-    // Enrich events with event DTOs concurrently
+    console.log("Enriching events with event DTOs");
+
     const enrichedEvents = await Promise.all(
       eventsList.map(async (eventFlash) => {
         const { eventDTO } = await getEventDTO(
@@ -167,10 +196,6 @@ exports.getEvents = async (req, res) => {
           playerAddress
         );
 
-        if (!eventFlash.WINNER) {
-          eventFlash.WINNER = "-1";
-        }
-        // Determine event state
         const currentTime = Math.floor(Date.now() / 1000);
         let eventState = "0"; // Default state: not opened
 
@@ -199,7 +224,10 @@ exports.getEvents = async (req, res) => {
 
     const totalPages = Math.ceil(totalItems / size);
 
-    // Send successful response with events and pagination info
+    console.log(
+      `Sending response with ${enrichedEvents.length} enriched events`
+    );
+
     res.status(200).json({
       status: "success",
       data: { events: enrichedEvents },
@@ -215,6 +243,7 @@ exports.getEvents = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getEvents:", error);
+
     res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -222,12 +251,15 @@ exports.getEvents = async (req, res) => {
   }
 };
 
+// Add verbosity to other helper functions (example for getEventsByTournament)
 async function getEventsByTournament(tournament, skip, size, sortOrder) {
-  console.log("getEventsByTournament");
+  console.log(
+    `Fetching events for tournament: ${tournament}, Skip: ${skip}, Size: ${size}, Sort Order: ${sortOrder}`
+  );
+
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // Fetch events that match the criteria and apply pagination
     let eventsList = await Event.aggregate([
       {
         $match: {
@@ -240,11 +272,14 @@ async function getEventsByTournament(tournament, skip, size, sortOrder) {
       { $limit: size },
     ]);
 
-    // Get total count of matching events for pagination
     const totalCount = await Event.countDocuments({
       TOURNAMENT_ID: tournament,
       START_UTIME: { $gt: currentTime },
     });
+
+    console.log(
+      `Found ${eventsList.length} events for tournament: ${tournament}, Total Count: ${totalCount}`
+    );
 
     return { events: eventsList, totalCount };
   } catch (error) {
@@ -389,7 +424,7 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
 async function updateEvent(eventId, shortDTO = true) {
   // Construct the query object based on shortDTO
   const queryFields = shortDTO
-    ? { NEWS: 0, VIDEOS: 0, ODDS: 0 } // Exclude these fields
+    ? { NEWS: 0, VIDEOS: 0, ODDS: 0 } // Exclude these fields for shortDTO
     : {}; // Include all fields if shortDTO is false
 
   // Attempt to find the event in the database
@@ -403,10 +438,10 @@ async function updateEvent(eventId, shortDTO = true) {
     if (!event || event === 404) return null;
 
     // Ensure required fields are included
-    event.HEADER = event.HEADER || "Default Header"; // Provide a default value or fetch it appropriately
-    event.NAME = event.NAME || "Default Name"; // Provide a default value or fetch it appropriately
+    event.HEADER = event.HEADER || "Default Header"; // Provide a default value
+    event.NAME = event.NAME || "Default Name"; // Provide a default value
 
-    // If found, create a new event in the database
+    // Create a new event in the database
     event = await Event.create(event);
   }
 
@@ -415,14 +450,14 @@ async function updateEvent(eventId, shortDTO = true) {
   // Check if the event needs to be updated based on the lastUpdated timestamp
   if (
     !event.lastUpdated ||
-    (event.lastUpdated < currentTime - 10 * 60 && !shortDTO)
+    event.lastUpdated < currentTime - 10 * 60 ||
+    !shortDTO
   ) {
-    // Fetch the latest event details from an external source
+    // Fetch the latest event details from the external source
     let newEvent = await EventById(eventId);
 
-    // Handle cases where the event is not found or marked as CANCELED
+    // If the event was fetched but is marked as 404 or not found, set it as CANCELED
     if (newEvent === 404 || !newEvent) {
-      // Update the existing event to indicate it is CANCELED if not found
       await Event.findOneAndUpdate(
         { EVENT_ID: eventId },
         { STAGE_TYPE: "CANCELED", STAGE: "CANCELED" },
@@ -435,6 +470,7 @@ async function updateEvent(eventId, shortDTO = true) {
       return null;
     }
 
+    // Validate and update event details
     newEvent = scorePartValidation(newEvent);
 
     // Process and update news, videos, and odds only if shortDTO is false
@@ -444,35 +480,40 @@ async function updateEvent(eventId, shortDTO = true) {
           console.error("Error fetching news:", error)
         ),
         VideosByEventId(eventId).catch((error) =>
-          console.error("Error fetching Video:", error)
+          console.error("Error fetching videos:", error)
         ),
         MatchOddsByEventId(eventId).catch((error) =>
-          console.error("Error fetching Match Odds:", error)
+          console.error("Error fetching match odds:", error)
         ),
       ]);
 
       if (news) newEvent.NEWS = news;
       if (videos) newEvent.VIDEOS = videos;
       if (matchOdds) {
-        newEvent.ODDS = matchOdds.DATA;
+        console.log("MatchOddsByEventId", matchOdds);
+        newEvent.ODDS = matchOdds;
       } else {
         newEvent.ODDS = [];
       }
     }
 
-    // Update the event in the database with the new data and update the lastUpdated field
-    newEvent.lastUpdated = currentTime;
-    await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
-      upsert: true,
-      new: true,
-      setDefaultsOnInsert: true,
-    });
+    // Ensure required fields are included in the new event
+    newEvent.EVENT_ID = eventId; // Assign the eventId to the new event object
+    newEvent.lastUpdated = currentTime; // Update the lastUpdated timestamp
 
+    // Save the new event to the database
+     await Event.findOneAndUpdate({ EVENT_ID: eventId }, newEvent, {
+      upsert: true, // Create a new document if it doesn't exist
+      new: true, // Return the updated document
+      setDefaultsOnInsert: true, // Apply default values when inserting
+    });
     return newEvent;
   }
 
+  // Return the found or updated event
   return event;
 }
+
 
 // getSearchEvents function
 // getSearchEvents function

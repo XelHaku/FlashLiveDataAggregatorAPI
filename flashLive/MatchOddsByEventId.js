@@ -35,6 +35,32 @@ async function MatchOddsByEventId(eventId) {
           oddB: market.ODD_CELL_THIRD.VALUE,
         }));
 
+        // Cálculo de la suma de odds para normalización
+        const totalOdds = bookmakers.reduce(
+          (acc, curr) => {
+            acc.oddA += curr.oddA;
+            acc.oddB += curr.oddB;
+            return acc;
+          },
+          { oddA: 0, oddB: 0 }
+        );
+
+        let percentageA =
+          (totalOdds.oddA / (totalOdds.oddA + totalOdds.oddB)) * 100;
+        let percentageB =
+          (totalOdds.oddB / (totalOdds.oddA + totalOdds.oddB)) * 100;
+
+        const minPercentage = 0.1;
+
+        // Asegurar que ningún porcentaje sea inferior al mínimo permitido
+        if (percentageA < minPercentage) {
+          percentageA = minPercentage;
+          percentageB = 100 - percentageA;
+        } else if (percentageB < minPercentage) {
+          percentageB = minPercentage;
+          percentageA = 100 - percentageB;
+        }
+
         // Añadir el promedio de cuotas (avgodd)
         const avgOdds = bookmakers.reduce(
           (acc, curr) => {
@@ -53,6 +79,8 @@ async function MatchOddsByEventId(eventId) {
           oddA: Number((avgOdds.oddA / avgCount).toFixed(2)),
           oddDraw: Number((avgOdds.oddDraw / avgCount).toFixed(2)),
           oddB: Number((avgOdds.oddB / avgCount).toFixed(2)),
+          percentageA: percentageB.toFixed(2),
+          percentageB: percentageA.toFixed(2),
         });
 
         return bookmakers;
