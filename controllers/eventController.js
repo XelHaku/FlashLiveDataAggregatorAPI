@@ -9,7 +9,7 @@ const { getEventDTO } = require("../utils/getEventDTO");
 const { getArenatonEvents } = require("../utils/getArenatonEvents");
 const { getArenatonPlayerEvents } = require("../utils/getArenatonPlayerEvents");
 const NewsModel = require("../models/newsModel");
-const pageSizeDefault = 12;
+const pageSizeDefault = 16;
 
 /**
  * Fetches a list of events based on various filters provided in the request query.
