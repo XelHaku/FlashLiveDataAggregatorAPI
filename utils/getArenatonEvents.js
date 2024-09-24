@@ -82,19 +82,17 @@ async function getArenatonEvents(
 
     // Sort events based on the provided 'sort' criteria
     const sortedEvents = clonedEvents.sort((a, b) => {
-      if (sort === "total") {
-        // Compare by total (total_A + total_B)
-        console.log("a:", a);
-        console.log("b:", b);
-        const totalA = a.total ?? 0;
-        const totalB = b.total ?? 0;
-        return totalA - totalB; // Sort by descending total
-      } else if (sort === "date") {
-        // Compare by startDate
-        const dateA = a.startDate ?? 0;
-        const dateB = b.startDate ?? 0;
-        return dateA - dateB; // Sort by ascending date
-      }
+      // if (sort === "total") {
+      // Compare by total (totalA + totalB)
+      const totalA = a.total ?? 0;
+      const totalB = b.total ?? 0;
+      return totalB - totalA; // Sort by descending total (High to Low)
+      // } else if (sort === "date") {
+      //   // Compare by startDate
+      //   const dateA = a.startDate ?? 0;
+      //   const dateB = b.startDate ?? 0;
+      //   return dateA - dateB; // Sort by ascending date (Earliest to Latest)
+      // }
       return 0; // Default no sort
     });
 

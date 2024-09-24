@@ -78,6 +78,12 @@ function mapEventDTO(eventRawDTO, _eventId) {
   );
 
   // Check if totalA is greater than 0 to avoid division by zero
+
+  //   Stake 100
+
+  //   Expected 508.2
+
+  // express ratio as 5.08
   let expected =
     totalA > 0
       ? (totalB * playerStakeAmount) / totalA +
