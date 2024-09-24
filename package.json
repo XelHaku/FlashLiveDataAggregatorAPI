@@ -31,14 +31,18 @@
     "cors": "^2.8.5",
     "ethers": "^6.13.2",
     "express": "^4.21.0",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^6.11.2",
     "glob": "^11.0.0",
+    "helmet": "^7.1.0",
+    "hpp": "^0.2.3",
     "lru-cache": "^7.18.3",
     "mongoose": "^7.8.1",
     "morgan": "^1.10.0",
     "nodemon": "^2.0.22",
     "rimraf": "^6.0.1",
-    "web3": "^4.12.1"
+    "web3": "^4.12.1",
+    "xss-clean": "^0.1.4"
   },
   "devDependencies": {
     "eslint": "^8.57.1",
