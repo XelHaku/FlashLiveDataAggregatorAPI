@@ -44,69 +44,14 @@ const contractABI = [
   },
 ];
 
-  // function getPlayerEvents(
-  //   address playerAddress,
-  //   uint8 sport,
-  //   bool active,
-  //   uint256 size,
-  //   uint256 pageNo
-  // ) external view returns (AStructs.EventDTO[] memory) {
-  //   AStructs.Player storage player = players[playerAddress];
-
-  //   // Determine whether to retrieve active or closed events
-  //   bytes8[] storage eventList = active ? player.activeEvents : player.closedEvents;
-
-  //   uint256 totalEvents = eventList.length;
-
-  //   // Calculate start index based on pageNo and size
-  //   uint256 startIndex = (pageNo - 1) * size;
-
-  //   // Calculate the number of events to return based on available events
-  //   uint256 endIndex = startIndex + size;
-  //   if (endIndex > totalEvents) {
-  //     endIndex = totalEvents;
-  //   }
-
-  //   // Filter and retrieve events matching the sport condition
-  //   return _filterAndGetEvents(eventList, playerAddress, sport, startIndex, endIndex);
-  // }
-
-  // function _filterAndGetEvents(
-  //   bytes8[] storage eventList,
-  //   address playerAddress,
-  //   uint8 sport,
-  //   uint256 startIndex,
-  //   uint256 endIndex
-  // ) internal view returns (AStructs.EventDTO[] memory) {
-  //   // Initialize a temporary array to store filtered events
-  //   AStructs.EventDTO[] memory tempEvents = new AStructs.EventDTO[](endIndex - startIndex);
-  //   uint256 count = 0;
-
-  //   // Populate the tempEvents array with event details that match the sport filter
-  //   for (uint256 i = startIndex; i < endIndex; i++) {
-  //     AStructs.EventDTO memory eventDTO = _getEventDTO(eventList[i], playerAddress);
-  //     // Check if the event matches the specified sport or if sport < 0 (which means return all)
-  //     if (eventDTO.sport == sport || sport == 0) {
-  //       tempEvents[count] = eventDTO;
-  //       count++;
-  //     }
-  //   }
-
-  //   // Create a final array with the exact size needed to store the filtered events
-  //   AStructs.EventDTO[] memory finalEventsDTO = new AStructs.EventDTO[](count);
-  //   for (uint256 i = 0; i < count; i++) {
-  //     finalEventsDTO[i] = tempEvents[i];
-  //   }
-
-  //   return finalEventsDTO;
-  // }
 // Function to fetch player events from the contract
 async function getArenatonPlayerEvents(
   _playerAddress,
   _sport,
   _active = true,
-  pageSize = 12,
-  pageNo = 1
+  pageSize,
+  pageNo = 1,
+  sort = "date"
 ) {
   try {
     // Ensure _sport is a valid uint8 value
@@ -135,26 +80,27 @@ async function getArenatonPlayerEvents(
       throw new Error("No events found");
     }
 
-    console.log("Player events:", playerEvents);
-
     // Clone the immutable result array into a mutable structure
-    const clonedEvents = playerEvents.map((event) => [...event]);
+    const clonedEvents = playerEvents.map((event) => ({ ...event }));
 
-    // Sort by total (total_A + total_B) and then by startDate
+    console.log("getArenatonPlayerEvents Player Events:", clonedEvents);
+
+    // Sort events based on the provided 'sort' criteria
     const sortedEvents = clonedEvents.sort((a, b) => {
-      const totalA = BigInt(a[3] ?? 0) + BigInt(a[4] ?? 0); // total_A + total_B
-      const totalB = BigInt(b[3] ?? 0) + BigInt(b[4] ?? 0); // total_A + total_B
-
-      const totalComparison = totalA > totalB ? 1 : totalA < totalB ? -1 : 0;
-      if (totalComparison !== 0) {
-        return totalComparison;
+      if (sort === "total") {
+        // Compare by total (total_A + total_B)
+        console.log("a:", a);
+        console.log("b:", b);
+        const totalA = a.total ?? 0;
+        const totalB = b.total ?? 0;
+        return totalB - totalA; // Sort by descending total
+      } else if (sort === "date") {
+        // Compare by startDate
+        const dateA = a.startDate ?? 0;
+        const dateB = b.startDate ?? 0;
+        return dateA - dateB; // Sort by descending date
       }
-
-      // Compare by startDate (index 1)
-      const dateA = BigInt(a[1] ?? 0);
-      const dateB = BigInt(b[1] ?? 0);
-      const dateComparison = dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
-      return dateComparison;
+      return 0; // Default no sort
     });
 
     // Pagination logic
@@ -167,7 +113,7 @@ async function getArenatonPlayerEvents(
     );
 
     // Extract eventId (index 0) from paginated events
-    const activeEventsIdList = paginatedEvents.map((event) => event[0]);
+    const activeEventsIdList = paginatedEvents.map((event) => event["0"]);
 
     console.log("getArenatonPlayerEvents Event IDs:", activeEventsIdList);
 
@@ -181,7 +127,6 @@ async function getArenatonPlayerEvents(
     return [];
   }
 }
-
 
 // Helper function to translate the winner field into human-readable text
 function translateWinner(winner) {
@@ -203,7 +148,7 @@ function translateWinner(winner) {
 
 // Helper function to format a timestamp into a readable date string
 function formatDate(date) {
-  const timestamp = parseInt(date.toString());
+  const timestamp = Number(date); // Convert BigInt to Number for date formatting
   return new Date(timestamp * 1000).toLocaleString();
 }
 

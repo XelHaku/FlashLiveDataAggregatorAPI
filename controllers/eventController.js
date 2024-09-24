@@ -28,7 +28,7 @@ exports.getEvents = async (req, res) => {
     country,
     pageNo = 1,
     sort = "asc",
-    pageSize = pageSizeDefault,
+    pageSize = pageSizeDefault, // Ensure pageSizeDefault is defined
     playerAddress,
     player,
   } = req.query;
@@ -37,8 +37,8 @@ exports.getEvents = async (req, res) => {
     `Received request with query params: ${JSON.stringify(req.query)}`
   );
 
-  const page = parseInt(pageNo, 10) || 1;
-  const size = parseInt(pageSize, 10) || pageSizeDefault;
+  const page = parseInt(pageNo) || 1;
+  const size = parseInt(pageSize) || pageSizeDefault;
   const skip = (page - 1) * size;
   const sortOrder = sort.toLowerCase() === "desc" ? -1 : 1;
 
@@ -50,37 +50,28 @@ exports.getEvents = async (req, res) => {
     let eventsList = [];
     let totalItems = 0;
 
+    // Fetch player-specific events
     if (player === "true" && playerAddress) {
       console.log(
         `Fetching player-specific events for player address: ${playerAddress}`
       );
 
+      // _playerAddress,
+      //   _sport,
+      //   (_active = true),
+      //   pageSize,
+      //   (pageNo = 1),
+      //   (sort = "date");
       const playerEventIds = await getArenatonPlayerEvents(
         playerAddress,
         sport,
         active === "true",
         size,
-        page
+        page,
+        "date"
       );
 
-      if (playerEventIds && playerEventIds.length) {
-        console.log(
-          `Player-specific events found: ${playerEventIds.length} events`
-        );
-
-        const result = await getEventsByList(
-          playerEventIds,
-          skip,
-          size,
-          sortOrder
-        );
-        eventsList = result.events;
-        totalItems = result.totalCount;
-      } else {
-        console.log(
-          `No player-specific events found for address: ${playerAddress}`
-        );
-
+      if (!playerEventIds || playerEventIds.length === 0) {
         return res.status(200).json({
           status: "success",
           data: { events: [] },
@@ -95,6 +86,20 @@ exports.getEvents = async (req, res) => {
           },
         });
       }
+
+      console.log(
+        `Player-specific events found: ${playerEventIds.length} events`
+      );
+      const result = await getEventsByList(
+        playerEventIds,
+        skip,
+        size,
+        sortOrder
+      );
+      eventsList = result.events;
+      totalItems = result.totalCount;
+
+      // Fetch active events
     } else if (active === "true") {
       console.log("Fetching active events...");
 
@@ -102,25 +107,12 @@ exports.getEvents = async (req, res) => {
         sport,
         0,
         playerAddress,
-        sort,
+        "total",
         page,
         size
       );
 
-      if (activeEventIds && activeEventIds.length) {
-        console.log(`Active events found: ${activeEventIds.length} events`);
-
-        const result = await getEventsByList(
-          activeEventIds,
-          skip,
-          size,
-          sortOrder
-        );
-        eventsList = result.events;
-        totalItems = result.totalCount;
-      } else {
-        console.log("No active events found");
-
+      if (!activeEventIds || activeEventIds.length === 0) {
         return res.status(200).json({
           status: "success",
           data: { events: [] },
@@ -135,9 +127,20 @@ exports.getEvents = async (req, res) => {
           },
         });
       }
+
+      console.log(`Active events found: ${activeEventIds.length} events`);
+      const result = await getEventsByList(
+        activeEventIds,
+        skip,
+        size,
+        sortOrder
+      );
+      eventsList = result.events;
+      totalItems = result.totalCount;
+
+      // Fetch events by tournament
     } else if (tournament) {
       console.log(`Fetching events by tournament: ${tournament}`);
-
       const result = await getEventsByTournament(
         tournament,
         skip,
@@ -146,47 +149,50 @@ exports.getEvents = async (req, res) => {
       );
       eventsList = result.events;
       totalItems = result.totalCount;
+
+      // Fetch events by ID
     } else if (id) {
       console.log(`Fetching events by ID: ${id}`);
-
       const idArray = Array.isArray(id) ? id : [id];
       const result = await getEventsByList(idArray, skip, size, sortOrder);
       eventsList = result.events;
       totalItems = result.totalCount;
+
+      // Fetch events by sport (and optionally by country)
     } else if (sport) {
       console.log(
         `Fetching events by sport: ${sport} and country: ${country || "N/A"}`
       );
-
       const result = country
         ? await getEventsBySportAndCountry(
             sport,
             country,
-            skip,
-            size,
+            pageSize,
+            pageNo,
             sortOrder
           )
-        : await getEventsBySport(sport, skip, size, sortOrder);
+        : await getEventsBySport(sport, pageSize, pageNo, sortOrder);
+
       eventsList = result.events;
       totalItems = result.totalCount;
     } else {
       console.log("No valid filters provided");
-
       return res.status(400).json({
         status: "error",
         message: "No valid filters provided",
       });
     }
 
+    // Return an error if no events found
     if (!eventsList.length) {
       console.log("No events found after applying filters");
-
       return res.status(404).json({
         status: "error",
         message: "No events found",
       });
     }
 
+    // Enrich the events with additional DTOs
     console.log("Enriching events with event DTOs");
 
     const enrichedEvents = await Promise.all(
@@ -195,7 +201,6 @@ exports.getEvents = async (req, res) => {
           eventFlash.EVENT_ID,
           playerAddress
         );
-
         const currentTime = Math.floor(Date.now() / 1000);
         let eventState = "0"; // Default state: not opened
 
@@ -217,7 +222,6 @@ exports.getEvents = async (req, res) => {
         }
 
         eventDTO.eventState = eventState;
-
         return { eventFlash, eventDTO };
       })
     );
@@ -287,13 +291,19 @@ async function getEventsByTournament(tournament, skip, size, sortOrder) {
     return { events: [], totalCount: 0 };
   }
 }
-async function getEventsBySport(sport, skip, size, sortOrder) {
+
+async function getEventsBySport(
+  sport,
+  pageSize = 10, // Default page size
+  pageNo = 1, // Default page number
+  sort = "asc" // Default sorting order
+) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
     // Create a filter object for the query
     const filter = {
-      START_UTIME: { $gt: currentTime },
+      START_UTIME: { $gt: currentTime }, // Get events that are in the future
     };
 
     // Add sport filter only if sport is not -1
@@ -301,13 +311,18 @@ async function getEventsBySport(sport, skip, size, sortOrder) {
       filter.SPORT = sport;
     }
 
+    // Determine the sorting order (ascending or descending)
+
+    // Calculate how many items to skip for pagination
+    const skip = (pageNo - 1) * pageSize;
+
     // Fetch the upcoming events for the given sport with pagination
     const upcomingEvents = await Event.find(filter)
-      .sort({ START_UTIME: sortOrder })
-      .skip(skip)
-      .limit(size)
-      .select("-_id -__v")
-      .lean();
+      .sort({ START_UTIME: 1 }) // Sort by start time
+      .skip(skip) // Skip items for pagination
+      .limit(pageSize) // Limit the number of results
+      .select("-_id -__v") // Exclude unwanted fields
+      .lean(); // Optimize query by returning plain JavaScript objects
 
     // Get total count of matching events for pagination
     const totalCount = await Event.countDocuments(filter);
@@ -322,35 +337,40 @@ async function getEventsBySport(sport, skip, size, sortOrder) {
 async function getEventsBySportAndCountry(
   sport,
   country,
-  skip,
-  size,
-  sortOrder
+  pageSize = 10, // Default page size
+  pageNo = 1, // Default page number
+  sort = "asc" // Default sorting order
 ) {
   try {
     const currentTime = Math.floor(Date.now() / 1000);
 
     // Create a filter object for the query
     const filter = {
-      START_UTIME: { $gt: currentTime },
+      START_UTIME: { $gt: currentTime }, // Only get events that are in the future
     };
 
-    // Add sport filter only if sport is not -1
-    if (sport !== -1) {
+    // Add sport filter only if sport is not -1 (indicating "any sport")
+    if (sport !== "-1") {
       filter.SPORT = sport;
     }
 
-    // Add country filter only if country is not -1
-    if (country !== -1) {
+    // Add country filter only if country is not -1 (indicating "any country")
+    if (country && country !== "") {
       filter.COUNTRY_ID = country;
     }
 
+    // Determine the sorting order (ascending or descending)
+
+    // Calculate how many items to skip for pagination
+    const skip = (pageNo - 1) * pageSize;
+
     // Fetch the upcoming events for the given sport and country with pagination
     const upcomingEvents = await Event.find(filter)
-      .sort({ START_UTIME: sortOrder })
-      .skip(skip)
-      .limit(size)
-      .select("-_id -__v")
-      .lean();
+      .sort({ START_UTIME: 1 }) // Sort by start time
+      .skip(skip) // Skip items for pagination
+      .limit(pageSize) // Limit the number of results
+      .select("-_id -__v") // Exclude unwanted fields
+      .lean(); // Optimize query by returning plain JavaScript objects
 
     // Get total count of matching events for pagination
     const totalCount = await Event.countDocuments(filter);
@@ -361,6 +381,7 @@ async function getEventsBySportAndCountry(
     throw error;
   }
 }
+
 async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
   console.log("getEventsByList");
 
@@ -486,20 +507,20 @@ async function updateEvent(eventId, shortDTO = true) {
 
       if (news) newEvent.NEWS = news;
       if (videos) newEvent.VIDEOS = videos;
+      const [matchOdds] = await Promise.all([
+        MatchOddsByEventId(eventId).catch((error) =>
+          console.error("Error fetching match odds:", error)
+        ),
+      ]);
+
+      if (matchOdds) {
+        console.log("MatchOddsByEventId", matchOdds);
+        newEvent.ODDS = matchOdds;
+      } else {
+        newEvent.ODDS = [];
+      }
     }
 
-    const [matchOdds] = await Promise.all([
-      MatchOddsByEventId(eventId).catch((error) =>
-        console.error("Error fetching match odds:", error)
-      ),
-    ]);
-
-    if (matchOdds) {
-      console.log("MatchOddsByEventId", matchOdds);
-      newEvent.ODDS = matchOdds;
-    } else {
-      newEvent.ODDS = [];
-    }
     // Ensure required fields are included in the new event
     newEvent.EVENT_ID = eventId; // Assign the eventId to the new event object
     newEvent.lastUpdated = currentTime; // Update the lastUpdated timestamp

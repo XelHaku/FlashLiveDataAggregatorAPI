@@ -53,7 +53,7 @@ async function getArenatonEvents(
   _sport,
   _step,
   _player = "0x0000000000000000000000000000000000000000",
-  sort = "asc",
+  sort = "total",
   pageNo = 1,
   pageSize = 12
 ) {
@@ -66,12 +66,10 @@ async function getArenatonEvents(
       provider
     );
 
-    let activeEvents;
-    let sppp = _sport;
-    if (_sport === "-1") {
-      sppp = 0;
-    }
-    activeEvents = await contract.getEvents(sppp, _step, _player);
+    let sportValue = _sport === "-1" ? 0 : _sport;
+
+    // Fetch events from the contract
+    const activeEvents = await contract.getEvents(sportValue, _step, _player);
 
     if (!activeEvents || activeEvents.length === 0) {
       throw new Error("No events found");
@@ -79,24 +77,25 @@ async function getArenatonEvents(
 
     console.log("Active events:", activeEvents);
 
-    // Clone the immutable result array into a mutable structure
-    const clonedEvents = activeEvents.map((event) => [...event]);
+    // Clone events for manipulation
+    const clonedEvents = activeEvents.map((event) => ({ ...event }));
 
-    // Sort by total (total_A + total_B) and then by startDate
+    // Sort events based on the provided 'sort' criteria
     const sortedEvents = clonedEvents.sort((a, b) => {
-      const totalA = BigInt(a[3] ?? 0) + BigInt(a[4] ?? 0); // total_A + total_B
-      const totalB = BigInt(b[3] ?? 0) + BigInt(b[4] ?? 0); // total_A + total_B
-
-      const totalComparison = totalA > totalB ? 1 : totalA < totalB ? -1 : 0;
-      if (totalComparison !== 0) {
-        return sort === "asc" ? totalComparison : -totalComparison;
+      if (sort === "total") {
+        // Compare by total (total_A + total_B)
+        console.log("a:", a);
+        console.log("b:", b);
+        const totalA = a.total ?? 0;
+        const totalB = b.total ?? 0;
+        return totalA - totalB; // Sort by descending total
+      } else if (sort === "date") {
+        // Compare by startDate
+        const dateA = a.startDate ?? 0;
+        const dateB = b.startDate ?? 0;
+        return dateA - dateB; // Sort by ascending date
       }
-
-      // Compare by startDate (index 1)
-      const dateA = BigInt(a[1] ?? 0);
-      const dateB = BigInt(b[1] ?? 0);
-      const dateComparison = dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
-      return sort === "asc" ? dateComparison : -dateComparison;
+      return 0; // Default no sort
     });
 
     // Pagination logic
@@ -109,13 +108,13 @@ async function getArenatonEvents(
     );
 
     // Extract eventId (index 0) from paginated events
-    const activeEventsIdList = paginatedEvents.map((event) => event[0]);
+    const activeEventsIdList = paginatedEvents.map((event) => event["0"]);
 
-    console.log("getArenatonEvents Event IDs:", activeEventsIdList);
+    console.log("getArenatonPlayerEvents Event IDs:", activeEventsIdList);
 
     return activeEventsIdList;
   } catch (error) {
-    console.error("Failed to fetch active events:", {
+    console.error("Failed to fetch player events:", {
       message: error.message,
       transaction: error.transaction,
       data: error.data,
@@ -124,6 +123,7 @@ async function getArenatonEvents(
   }
 }
 
+// Helper function to translate the winner field into human-readable text
 function translateWinner(winner) {
   switch (winner) {
     case 0:
@@ -141,6 +141,7 @@ function translateWinner(winner) {
   }
 }
 
+// Helper function to format a timestamp into a readable date string
 function formatDate(date) {
   const timestamp = parseInt(date.toString());
   return new Date(timestamp * 1000).toLocaleString();
