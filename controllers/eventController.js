@@ -36,6 +36,15 @@ exports.getEvents = async (req, res) => {
   console.log(
     `Received request with query params: ${JSON.stringify(req.query)}`
   );
+  let _active = false;
+  if (
+    active === "ACTIVE" ||
+    active === "true" ||
+    active === "1" ||
+    active === "active"
+  ) {
+    _active = true;
+  }
 
   const page = parseInt(pageNo) || 1;
   const size = parseInt(pageSize) || pageSizeDefault;
@@ -56,16 +65,10 @@ exports.getEvents = async (req, res) => {
         `Fetching player-specific events for player address: ${playerAddress}`
       );
 
-      // _playerAddress,
-      //   _sport,
-      //   (_active = true),
-      //   pageSize,
-      //   (pageNo = 1),
-      //   (sort = "date");
       const playerEventIds = await getArenatonPlayerEvents(
         playerAddress,
         sport,
-        active === "true",
+        _active,
         size,
         page,
         "date"
@@ -80,7 +83,7 @@ exports.getEvents = async (req, res) => {
             pageSize: 0,
             totalItems: 0,
             totalPages: 1,
-            active: active === "true",
+            active: _active,
             player: true,
             sport: sport || "-1",
           },
@@ -90,17 +93,12 @@ exports.getEvents = async (req, res) => {
       console.log(
         `Player-specific events found: ${playerEventIds.length} events`
       );
-      const result = await getEventsByList(
-        playerEventIds,
-        skip,
-        size,
-        sortOrder
-      );
+      const result = await getEventsByList(playerEventIds, skip, size, 0);
       eventsList = result.events;
       totalItems = result.totalCount;
 
       // Fetch active events
-    } else if (active === "true") {
+    } else if (_active) {
       console.log("Fetching active events...");
 
       const activeEventIds = await getArenatonEvents(
@@ -129,12 +127,7 @@ exports.getEvents = async (req, res) => {
       }
 
       console.log(`Active events found: ${activeEventIds.length} events`);
-      const result = await getEventsByList(
-        activeEventIds,
-        skip,
-        size,
-        sortOrder
-      );
+      const result = await getEventsByList(activeEventIds, skip, size, 0);
       eventsList = result.events;
       totalItems = result.totalCount;
 
@@ -383,8 +376,6 @@ async function getEventsBySportAndCountry(
 }
 
 async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
-  console.log("getEventsByList");
-
   if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) {
     if (typeof ids === "string") {
       ids = [ids];
@@ -418,9 +409,10 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
     events.sort((a, b) => {
       if (sortOrder === 1) {
         return a.START_UTIME - b.START_UTIME;
-      } else {
+      } else if (sortOrder === -1) {
         return b.START_UTIME - a.START_UTIME;
       }
+      return 0;
     });
 
     // Apply pagination manually since the eventsList is already filtered
@@ -428,7 +420,7 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
 
     return { events: paginatedEvents, totalCount };
   } catch (error) {
-    console.error("Error in getEventsByList:", error);
+    console.error("Error in get EventsByList:", error);
     throw error;
   }
 }
@@ -537,7 +529,6 @@ async function updateEvent(eventId, shortDTO = true) {
   // Return the found or updated event
   return event;
 }
-
 
 // getSearchEvents function
 // getSearchEvents function

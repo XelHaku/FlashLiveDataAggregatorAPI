@@ -68,36 +68,44 @@ async function getEventDTO(
     return { eventDTO: createDefaultEventDTO(_eventId) };
   }
 }
-
 // Helper function to map the raw event data to a structured DTO
-function mapEventDTO(eventRawDTO, _eventId) {
+function mapEventDTO(eventRawDTO, _eventId, ETH_TO_USD) {
+  const team = eventRawDTO.playerStake.team.toString();
   const totalA = parseFloat(ethers.formatEther(eventRawDTO.total_A));
   const totalB = parseFloat(ethers.formatEther(eventRawDTO.total_B));
   const playerStakeAmount = parseFloat(
     ethers.formatEther(eventRawDTO.playerStake.amount)
   );
 
-  // Check if totalA is greater than 0 to avoid division by zero
-
-  //   Stake 100
-
-  //   Expected 508.2
-
-  // express ratio as 5.08
-  let expected =
-    totalA > 0
-      ? (totalB * playerStakeAmount) / totalA +
-        playerStakeAmount -
-        ((totalB * playerStakeAmount) / totalA) * 0.02
-      : playerStakeAmount;
-
-  // Ensure expected is a valid number, even if the calculation goes wrong
+  let expected = 0;
+  if (team === "1") {
+    // Calculate expected payout with a 2% fee deduction if totalA > 0
+    expected =
+      totalA > 0
+        ? (totalB * playerStakeAmount) / totalA +
+          playerStakeAmount -
+          ((totalB * playerStakeAmount) / totalA) * 0.02
+        : playerStakeAmount;
+  } else if (team === "2") {
+    expected =
+      totalB > 0
+        ? (totalA * playerStakeAmount) / totalB +
+          playerStakeAmount -
+          ((totalA * playerStakeAmount) / totalB) * 0.02
+        : playerStakeAmount;
+  }
+  // Ensure expected is a valid number, defaulting to 0 if NaN
   expected = Number.isNaN(expected) ? 0 : expected;
 
+  // Calculate the payout ratio (as percentage) based on player's stake and expected payout
   const ratio =
     playerStakeAmount > 0
-      ? ((expected / playerStakeAmount) * 100).toFixed(2)
-      : "0.0%";
+      ? (expected / playerStakeAmount).toFixed(2) // Sports odds in decimal form
+      : "1.00"; // Default odds if no stake
+
+  // Shorten large total amounts for display (e.g., 1,000,000 => 1M)
+  const totalAshort = formatShortTotal(totalA);
+  const totalBshort = formatShortTotal(totalB);
 
   return {
     eventId: _eventId,
@@ -117,15 +125,33 @@ function mapEventDTO(eventRawDTO, _eventId) {
     open: eventRawDTO.active,
     close: eventRawDTO.closed,
     payout: eventRawDTO.paid,
-    totalAshort: formatShortTotal(totalA),
-    totalBshort: formatShortTotal(totalB),
-    stake: playerStakeAmount.toFixed(6),
-    expected: expected.toFixed(6),
-    ratio: ratio,
-    oddsA: oddsPivot(totalA, totalB),
-    oddsB: oddsPivot(totalB, totalA),
+    totalAshort,
+    totalBshort,
+    stake: playerStakeAmount.toFixed(9), // Round player stake to 9 decimals
+    expected: expected.toFixed(9), // Round expected payout to 6 decimals
+    ratio,
+    oddsA: oddsPivot(totalA, totalB), // Calculate odds for team A
+    oddsB: oddsPivot(totalB, totalA), // Calculate odds for team B
   };
 }
+
+/**
+ * Shorten large numbers for display purposes (e.g., 1,000,000 -> 1M).
+ */
+function formatShortTotal(total) {
+  if (total >= 1e6) return (total / 1e6).toFixed(1) + "M";
+  if (total >= 1e3) return (total / 1e3).toFixed(1) + "K";
+  return total.toFixed(2);
+}
+
+/**
+ * Calculate odds for a team based on total stakes.
+ * Avoid division by zero by returning 1 as the default odds if totalB is zero.
+ */
+function oddsPivot(totalA, totalB) {
+  return totalB > 0 ? (totalA / totalB).toFixed(2) : "1.00";
+}
+
 
 // Function to calculate odds based on totalA and totalB
 function oddsPivot(totalA, totalB) {

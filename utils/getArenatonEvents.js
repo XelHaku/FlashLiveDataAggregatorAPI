@@ -48,7 +48,6 @@ const contractABI = [
     stateMutability: "view",
   },
 ];
-
 async function getArenatonEvents(
   _sport,
   _step,
@@ -75,26 +74,17 @@ async function getArenatonEvents(
       throw new Error("No events found");
     }
 
-    console.log("Active events:", activeEvents);
-
     // Clone events for manipulation
     const clonedEvents = activeEvents.map((event) => ({ ...event }));
 
-    // Sort events based on the provided 'sort' criteria
     const sortedEvents = clonedEvents.sort((a, b) => {
-      // if (sort === "total") {
       // Compare by total (totalA + totalB)
-      const totalA = a.total ?? 0;
-      const totalB = b.total ?? 0;
+      const totalA = Number(a[5] ?? 0); // Convert BigInt to Number for comparison
+      const totalB = Number(b[5] ?? 0); // Convert BigInt to Number for comparison
       return totalB - totalA; // Sort by descending total (High to Low)
-      // } else if (sort === "date") {
-      //   // Compare by startDate
-      //   const dateA = a.startDate ?? 0;
-      //   const dateB = b.startDate ?? 0;
-      //   return dateA - dateB; // Sort by ascending date (Earliest to Latest)
-      // }
-      return 0; // Default no sort
     });
+
+    console.log("getArenatonEvents sortedEvents:", sortedEvents);
 
     // Pagination logic
     const totalItems = sortedEvents.length;

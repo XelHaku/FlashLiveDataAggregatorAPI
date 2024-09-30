@@ -44,16 +44,16 @@ process.on("unhandledRejection", (err) => {
   });
 });
 
-// Initial data fetching
-(async () => {
-  try {
-    await getEvents();
-    await updateUnfinishedEvents();
-    await callOracle();
-  } catch (err) {
-    console.error("Error during initial data fetching:", err);
-  }
-})();
+// // Initial data fetching
+// (async () => {
+//   try {
+//     await getEvents();
+//     await updateUnfinishedEvents();
+//     await callOracle();
+//   } catch (err) {
+//     console.error("Error during initial data fetching:", err);
+//   }
+// })();
 
 // Schedule tasks using node-cron
 nodeCron.schedule("0 * * * *", async () => {
