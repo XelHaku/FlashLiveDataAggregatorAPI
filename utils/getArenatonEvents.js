@@ -48,6 +48,8 @@ const contractABI = [
     stateMutability: "view",
   },
 ];
+
+
 async function getArenatonEvents(
   _sport,
   _step,

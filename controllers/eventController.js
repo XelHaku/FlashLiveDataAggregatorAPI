@@ -463,7 +463,7 @@ async function updateEvent(eventId, shortDTO = true) {
   // Check if the event needs to be updated based on the lastUpdated timestamp
   if (
     !event.lastUpdated ||
-    event.lastUpdated < currentTime - 30 * 60 ||
+    event.lastUpdated < currentTime - 45 * 60 ||
     !shortDTO
   ) {
     // Fetch the latest event details from the external source
