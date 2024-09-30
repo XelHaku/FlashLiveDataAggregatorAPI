@@ -389,7 +389,7 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
 
   try {
     const events = [];
-    if (ids.length < 3) {
+    if (ids.length < 2) {
       shortDTO = false;
     }
 
