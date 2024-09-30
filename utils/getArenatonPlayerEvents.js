@@ -133,13 +133,13 @@ async function getArenatonPlayerEvents(
       provider
     );
 
-    // Call the contract function getPlayerEvents
+    // Call the contract function getPlayerEvents. gett all events then paginate
     const playerEvents = await contract.getPlayerEvents(
       _playerAddress,
       0,
       _active,
-      pageSize,
-      pageNo
+      200,
+      1
     );
 
     if (!playerEvents || playerEvents.length === 0) {
