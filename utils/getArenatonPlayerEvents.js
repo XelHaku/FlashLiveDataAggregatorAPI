@@ -44,6 +44,63 @@ const contractABI = [
   },
 ];
 
+  // function getPlayerEvents(
+  //   address playerAddress,
+  //   uint8 sport,
+  //   bool active,
+  //   uint256 size,
+  //   uint256 pageNo
+  // ) external view returns (AStructs.EventDTO[] memory) {
+  //   AStructs.Player storage player = players[playerAddress];
+
+  //   // Determine whether to retrieve active or closed events
+  //   bytes8[] storage eventList = active ? player.activeEvents : player.closedEvents;
+
+  //   uint256 totalEvents = eventList.length;
+
+  //   // Calculate start index based on pageNo and size
+  //   uint256 startIndex = (pageNo - 1) * size;
+
+  //   // Calculate the number of events to return based on available events
+  //   uint256 endIndex = startIndex + size;
+  //   if (endIndex > totalEvents) {
+  //     endIndex = totalEvents;
+  //   }
+
+  //   // Filter and retrieve events matching the sport condition
+  //   return _filterAndGetEvents(eventList, playerAddress, sport, startIndex, endIndex);
+  // }
+
+  // function _filterAndGetEvents(
+  //   bytes8[] storage eventList,
+  //   address playerAddress,
+  //   uint8 sport,
+  //   uint256 startIndex,
+  //   uint256 endIndex
+  // ) internal view returns (AStructs.EventDTO[] memory) {
+  //   // Initialize a temporary array to store filtered events
+  //   AStructs.EventDTO[] memory tempEvents = new AStructs.EventDTO[](endIndex - startIndex);
+  //   uint256 count = 0;
+
+  //   // Populate the tempEvents array with event details that match the sport filter
+  //   for (uint256 i = startIndex; i < endIndex; i++) {
+  //     AStructs.EventDTO memory eventDTO = _getEventDTO(eventList[i], playerAddress);
+  //     // Check if the event matches the specified sport or if sport < 0 (which means return all)
+  //     if (eventDTO.sport == sport || sport == 0) {
+  //       tempEvents[count] = eventDTO;
+  //       count++;
+  //     }
+  //   }
+
+  //   // Create a final array with the exact size needed to store the filtered events
+  //   AStructs.EventDTO[] memory finalEventsDTO = new AStructs.EventDTO[](count);
+  //   for (uint256 i = 0; i < count; i++) {
+  //     finalEventsDTO[i] = tempEvents[i];
+  //   }
+
+  //   return finalEventsDTO;
+  // }
+
 // Function to fetch player events from the contract
 async function getArenatonPlayerEvents(
   _playerAddress,
@@ -59,6 +116,15 @@ async function getArenatonPlayerEvents(
       _sport = 0; // Represents "any sport"
     }
 
+    console.log("getArenatonPlayerEvents Parameters:", {
+      playerAddress: _playerAddress,
+      sport: _sport,
+      active: _active,
+      pageSize,
+      pageNo,
+      sort,
+    });
+
     const contractAddress = process.env.ARENATON_CONTRACT;
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const contract = new ethers.Contract(
@@ -70,7 +136,7 @@ async function getArenatonPlayerEvents(
     // Call the contract function getPlayerEvents
     const playerEvents = await contract.getPlayerEvents(
       _playerAddress,
-      _sport || 0,
+      0,
       _active,
       pageSize,
       pageNo
@@ -98,7 +164,7 @@ async function getArenatonPlayerEvents(
         // Compare by startDate
         const dateA = a.startDate ?? 0;
         const dateB = b.startDate ?? 0;
-        return dateA - dateB; // Sort by descending date
+        return dateB - dateA; // Sort by descending date
       }
       return 0; // Default no sort
     });
