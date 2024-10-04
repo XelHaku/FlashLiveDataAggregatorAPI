@@ -20,7 +20,7 @@ const pageSizeDefault = 16;
  * @param {Object} res - Express response object used to send the response.
  */
 exports.getEvents = async (req, res) => {
-  const {
+  let {
     id,
     active,
     tournament,
@@ -225,6 +225,12 @@ exports.getEvents = async (req, res) => {
       `Sending response with ${enrichedEvents.length} enriched events`
     );
 
+    if (tournament && tournament != "") {
+      active = "UPCOMING";
+      sport = enrichedEvents[0].eventFlash.SPORT;
+      country = enrichedEvents[0].eventFlash.COUNTRY_ID;
+    }
+
     res.status(200).json({
       status: "success",
       data: { events: enrichedEvents },
@@ -236,6 +242,8 @@ exports.getEvents = async (req, res) => {
         active: active === "true",
         player: player === "true",
         sport: sport || "-1",
+        country: country || "-1",
+        tournament: tournament || "-1",
       },
     });
   } catch (error) {
@@ -530,9 +538,7 @@ async function updateEvent(eventId, shortDTO = true) {
   // Return the found or updated event
   return event;
 }
-
-// getSearchEvents function
-// getSearchEvents function
+// Optimized getSearchEvents function
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
   const page = parseInt(pageNo, 10);
@@ -547,47 +553,37 @@ exports.getSearchEvents = async (req, res) => {
       });
     }
 
-    // Escape special regex characters to prevent ReDoS attacks
-    const escapedSearchText = search_text.replace(
+    // Use a trimmed version of the search text and escape special characters to prevent ReDoS attacks
+    const trimmedSearchText = search_text.trim();
+    const escapedSearchText = trimmedSearchText.replace(
       /[.*+?^${}()|[\]\\]/g,
       "\\$&"
     );
 
-    // Build the regex
-    const searchRegex = new RegExp(escapedSearchText, "i");
+    // Use $regex operator for searching and anchor regex to beginning to improve performance
+    const searchRegex = new RegExp(`^${escapedSearchText}`, "i");
 
-    // Build the query
+    // Build the query with a more selective set of fields to minimize the number of documents matched
     const query = {
-      $and: [
-        {
-          $or: [
-            { EVENT_ID: searchRegex },
-            { AWAY_NAME: searchRegex },
-            { AWAY_PARTICIPANT_NAME_ONE: searchRegex },
-            { CATEGORY_NAME: searchRegex },
-            { COUNTRY_NAME: searchRegex },
-            { HOME_NAME: searchRegex },
-            { HOME_PARTICIPANT_NAME_ONE: searchRegex },
-            { NAME: searchRegex },
-            { NAME_PART_1: searchRegex },
-            { NAME_PART_2: searchRegex },
-            { SHORTNAME_AWAY: searchRegex },
-            { SHORTNAME_HOME: searchRegex },
-            { SHORT_NAME: searchRegex },
-            { SORT: searchRegex },
-            { TOURNAMENT_ID: searchRegex },
-          ],
-        },
-        { START_UTIME: { $gt: Math.floor(Date.now() / 1000) } }, // Only future events
+      $or: [
+        { EVENT_ID: searchRegex },
+        { AWAY_NAME: searchRegex },
+        { HOME_NAME: searchRegex },
+        { CATEGORY_NAME: searchRegex },
+        { COUNTRY_NAME: searchRegex },
+        { NAME: searchRegex },
+        { SHORTNAME_AWAY: searchRegex },
+        { SHORTNAME_HOME: searchRegex },
       ],
+      START_UTIME: { $gt: Math.floor(Date.now() / 1000) }, // Only future events
     };
 
     // Filter by sport if provided
     if (sport && sport !== "-1") {
-      query.$and.push({ SPORT: parseInt(sport, 10) });
+      query.SPORT = parseInt(sport, 10);
     }
 
-    // Fields to select
+    // Fields to select (reduce the fields for faster I/O)
     const fieldsToSelect = {
       EVENT_ID: 1,
       NAME: 1,
@@ -595,36 +591,27 @@ exports.getSearchEvents = async (req, res) => {
       COUNTRY_NAME: 1,
       HOME_NAME: 1,
       AWAY_NAME: 1,
-      HOME_PARTICIPANT_NAME_ONE: 1,
-      AWAY_PARTICIPANT_NAME_ONE: 1,
       START_UTIME: 1,
-      STAGE_TYPE: 1,
-      HOME_SCORE_CURRENT: 1,
-      AWAY_SCORE_CURRENT: 1,
       ODDS: 1,
-      HOME_IMAGES: 1,
-      AWAY_IMAGES: 1,
       SHORTNAME_HOME: 1,
       SHORTNAME_AWAY: 1,
-      SHORT_NAME: 1,
-      TOURNAMENT_ID: 1,
     };
 
     // Ensure indexes exist on the fields used in queries
-    // Indexes should be created on START_UTIME, SPORT, and fields used in the $or condition
+    // Indexes: START_UTIME, SPORT, EVENT_ID, HOME_NAME, AWAY_NAME, CATEGORY_NAME, COUNTRY_NAME
 
-    // Perform the query and count in parallel
+    // Perform the query and count in parallel with lean for better performance
     const [events, totalItems] = await Promise.all([
       Event.find(query)
         .select(fieldsToSelect)
         .sort({ START_UTIME: 1 })
         .skip((page - 1) * size)
         .limit(size)
-        .lean(), // Use lean for better performance
+        .lean(),
       Event.countDocuments(query),
     ]);
 
-    if (events.length === 0) {
+    if (!events.length) {
       return res.status(404).json({
         status: "error",
         message: "No events found matching the search criteria",

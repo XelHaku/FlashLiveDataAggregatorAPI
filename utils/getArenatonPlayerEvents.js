@@ -164,7 +164,7 @@ async function getArenatonPlayerEvents(
         // Compare by startDate
         const dateA = a.startDate ?? 0;
         const dateB = b.startDate ?? 0;
-        return dateB - dateA; // Sort by descending date
+        return dateA - dateB; // Sort by descending date
       }
       return 0; // Default no sort
     });
