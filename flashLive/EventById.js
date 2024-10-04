@@ -24,13 +24,22 @@ async function EventById(eventId) {
 
     const responseData = await response.json();
     const data = responseData.DATA;
-    const sport = data.SPORT.SPORT_ID;
-    let event = data.EVENT;
 
-    if (event.HOME_IMAGES != null) {
+    // console.log("eventData:", data);
+
+    // Extract relevant data from the response
+    let event = data.EVENT;
+    let tournament = data.TOURNAMENT;
+    let sport = data.SPORT.SPORT_ID;
+
+    // Merge event and tournament data if needed
+    event = { ...event, ...tournament };
+
+    // Process image URLs
+    if (event.HOME_IMAGES != null && event.HOME_IMAGES.length > 0) {
       event.HOME_IMAGES = event.HOME_IMAGES[0];
     }
-    if (event.AWAY_IMAGES != null) {
+    if (event.AWAY_IMAGES != null && event.AWAY_IMAGES.length > 0) {
       event.AWAY_IMAGES = event.AWAY_IMAGES[0];
     }
 
@@ -46,3 +55,11 @@ async function EventById(eventId) {
 }
 
 module.exports = { EventById };
+
+
+// use this instead
+// curl --request GET \
+// 	--url 'https://flashlive-sports.p.rapidapi.com/v1/events/details?event_id=6ZCocWsb&locale=en_INT' \
+// 	--header 'x-rapidapi-host: flashlive-sports.p.rapidapi.com' \
+// 	--header 'x-rapidapi-key: 1d86ae077bmsh03965d8264487c4p14d0ffjsnf78cc55d6658'
+

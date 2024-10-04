@@ -400,7 +400,7 @@ async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
         events.push(event);
       }
       // Add a delay of 10 milliseconds before the next call
-      await delay(10);
+      // await delay(10);
     }
 
     const totalCount = events.length;
@@ -441,7 +441,8 @@ async function updateEvent(eventId, shortDTO = true) {
     : {}; // Include all fields if shortDTO is false
 
   // Attempt to find the event in the database
-  let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();
+  // let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();
+  let event = await Event.findOne({ EVENT_ID: eventId }).lean();
 
   // If not found in the database, try fetching from an external source (Flashscore)
   if (!event || event === "") {
