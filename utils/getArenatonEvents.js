@@ -86,6 +86,9 @@ async function getArenatonEvents(
       return totalB - totalA; // Sort by descending total (High to Low)
     });
 
+    // calidate size of page
+    // clonedEvents if length > pageSize*pageNo
+
     console.log("getArenatonEvents sortedEvents:", sortedEvents);
 
     // Pagination logic

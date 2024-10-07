@@ -74,7 +74,7 @@ const fetchEvents = async (params) => {
       page,
       "date"
     );
-    return getEventsByList(playerEventIds, skip, size, 0);
+    return await getEventsByList(playerEventIds, skip, size, 0);
   }
 
   if (active) {
@@ -95,7 +95,9 @@ const fetchEvents = async (params) => {
         active: false,
       });
     }
-    return getEventsByList(activeEventIds, skip, size, 0);
+    const eventList = await getEventsByList(activeEventIds, 0, size, 0);
+
+    return eventList;
   }
 
   if (tournament && tournament !== "0") {
@@ -104,7 +106,7 @@ const fetchEvents = async (params) => {
 
   if (id) {
     const idArray = Array.isArray(id) ? id : [id];
-    return getEventsByList(idArray, skip, size, sortOrder);
+    return await getEventsByList(idArray, skip, size, sortOrder);
   }
 
   if (sport) {
@@ -255,22 +257,42 @@ async function getEventsBySportAndCountry(
   return { events, totalCount };
 }
 
-async function getEventsByList(ids, skip, size, sortOrder, shortDTO = true) {
-  if (!Array.isArray(ids)) {
-    ids = typeof ids === "string" ? [ids] : [];
-  }
+async function getEventsByList(
+  ids,
+  skip = 0,
+  size = Infinity,
+  sortOrder = 1,
+  shortDTO = true
+) {
+  // Ensure ids is always an array
+  const idsArray = Array.isArray(ids)
+    ? ids
+    : typeof ids === "string"
+    ? [ids]
+    : [];
 
-  const events = await Promise.all(ids.map((id) => updateEvent(id, shortDTO)));
-  const filteredEvents = events.filter((event) => event !== null);
+  // Fetch events in parallel
+  const eventsPromises = idsArray.map((id) => updateEvent(id, shortDTO));
+  const events = await Promise.allSettled(eventsPromises);
 
-  filteredEvents.sort((a, b) =>
-    sortOrder === 1
-      ? a.START_UTIME - b.START_UTIME
-      : b.START_UTIME - a.START_UTIME
-  );
+  // Filter out rejected promises and null events
+  const filteredEvents = events
+    .filter((result) => result.status === "fulfilled" && result.value !== null)
+    .map((result) => result.value);
+
+  // Sort events based on sortOrder
+  filteredEvents.sort((a, b) => {
+    const aTime = a.START_UTIME || 0;
+    const bTime = b.START_UTIME || 0;
+    return sortOrder === 1 ? aTime - bTime : bTime - aTime;
+  });
+
+  // Calculate start and end indices for pagination
+  const startIndex = Math.max(0, skip);
+  const endIndex = Math.min(filteredEvents.length, startIndex + size);
 
   return {
-    events: filteredEvents.slice(skip, skip + size),
+    events: filteredEvents.slice(startIndex, endIndex),
     totalCount: filteredEvents.length,
   };
 }
