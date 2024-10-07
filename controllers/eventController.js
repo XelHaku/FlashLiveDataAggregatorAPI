@@ -98,7 +98,7 @@ const fetchEvents = async (params) => {
     return getEventsByList(activeEventIds, skip, size, 0);
   }
 
-  if (tournament) {
+  if (tournament && tournament !== "0") {
     return getEventsByTournament(tournament, skip, size, sortOrder);
   }
 

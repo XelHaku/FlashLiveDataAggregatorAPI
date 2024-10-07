@@ -44,54 +44,58 @@ process.on("unhandledRejection", (err) => {
   });
 });
 
-// Initial data fetching
-(async () => {
-  try {
-    await getEvents();
-    await updateUnfinishedEvents();
-    await callOracle();
-  } catch (err) {
-    console.error("Error during initial data fetching:", err);
-  }
-})();
 
-// Schedule tasks using node-cron
-nodeCron.schedule("0 * * * *", async () => {
-  // Runs at the top of every hour
-  try {
-    await getEvents();
-    console.log("getEvents executed successfully.");
-  } catch (err) {
-    console.error("Error executing getEvents:", err);
-  }
-});
 
-// Schedule tasks using node-cron, every 5 minutes
 
-nodeCron.schedule("5 * * * *", async () => {
-  // Runs at the top of every hour
-  try {
-    await callOracle();
-    console.log("getEvents executed successfully.");
-  } catch (err) {
-    console.error("Error executing getEvents:", err);
-  }
-});
 
-nodeCron.schedule("0 */4 * * *", async () => {
-  // Runs every 4 hours
-  try {
-    await updateUnfinishedEvents();
-    console.log("updateUnfinishedEvents executed successfully.");
-  } catch (err) {
-    console.error("Error executing updateUnfinishedEvents:", err);
-  }
-});
+// // Initial data fetching
+// (async () => {
+//   try {
+//     await getEvents();
+//     await updateUnfinishedEvents();
+//     await callOracle();
+//   } catch (err) {
+//     console.error("Error during initial data fetching:", err);
+//   }
+// })();
 
-// Graceful shutdown on SIGTERM
-process.on("SIGTERM", () => {
-  console.log("👋 SIGTERM RECEIVED. Shutting down gracefully...");
-  server.close(() => {
-    console.log("💥 Process terminated!");
-  });
-});
+// // Schedule tasks using node-cron
+// nodeCron.schedule("0 * * * *", async () => {
+//   // Runs at the top of every hour
+//   try {
+//     await getEvents();
+//     console.log("getEvents executed successfully.");
+//   } catch (err) {
+//     console.error("Error executing getEvents:", err);
+//   }
+// });
+
+// // Schedule tasks using node-cron, every 5 minutes
+
+// nodeCron.schedule("5 * * * *", async () => {
+//   // Runs at the top of every hour
+//   try {
+//     await callOracle();
+//     console.log("getEvents executed successfully.");
+//   } catch (err) {
+//     console.error("Error executing getEvents:", err);
+//   }
+// });
+
+// nodeCron.schedule("0 */4 * * *", async () => {
+//   // Runs every 4 hours
+//   try {
+//     await updateUnfinishedEvents();
+//     console.log("updateUnfinishedEvents executed successfully.");
+//   } catch (err) {
+//     console.error("Error executing updateUnfinishedEvents:", err);
+//   }
+// });
+
+// // Graceful shutdown on SIGTERM
+// process.on("SIGTERM", () => {
+//   console.log("👋 SIGTERM RECEIVED. Shutting down gracefully...");
+//   server.close(() => {
+//     console.log("💥 Process terminated!");
+//   });
+// });
