@@ -140,6 +140,8 @@ const enrichEvents = async (events, playerAddress) => {
       }
 
       eventDTO.eventState = eventState;
+      eventFlash.queryTime = currentTime;
+
       return { eventFlash, eventDTO };
     })
   );
@@ -416,3 +418,4 @@ exports.getSearchEvents = async (req, res) => {
     handleError(res, error, "Error in getSearchEvents");
   }
 };
+//  localhost:3000/api/v1/events?sport=-1&active=ACTIVE&pageNo=1
