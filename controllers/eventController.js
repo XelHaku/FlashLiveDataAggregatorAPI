@@ -174,7 +174,7 @@ exports.getEventEthers = async (req, res) => {
 
     // Calculate the new total stake for the selected team
     const newTotalA =
-      2team === "1" ? currentTotalA + inputAmount : currentTotalA;
+      team === "1" ? currentTotalA + inputAmount : currentTotalA;
     const newTotalB =
       team === "2" ? currentTotalB + inputAmount : currentTotalB;
 
