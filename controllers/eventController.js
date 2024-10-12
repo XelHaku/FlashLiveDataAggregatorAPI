@@ -95,7 +95,8 @@ const fetchEvents = async (params) => {
         active: false,
       });
     }
-    const eventList = await getEventsByList(activeEventIds, 0, size, 0);
+    const eventList = await getEventsByList(activeEventIds, 0, size, 0, false);
+    
 
     return eventList;
   }
