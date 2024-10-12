@@ -95,8 +95,7 @@ const fetchEvents = async (params) => {
         active: false,
       });
     }
-    const eventList = await getEventsByList(activeEventIds, 0, size, 0, false);
-    
+    const eventList = await getEventsByList(activeEventIds, 0, size, 0);
 
     return eventList;
   }
@@ -107,7 +106,7 @@ const fetchEvents = async (params) => {
 
   if (id) {
     const idArray = Array.isArray(id) ? id : [id];
-    return await getEventsByList(idArray, skip, size, sortOrder);
+    return await getEventsByList(idArray, skip, size, sortOrder, false);
   }
 
   if (sport) {
@@ -209,7 +208,6 @@ exports.getEventEthers = async (req, res) => {
       total_A: newTotalA.toString(),
       total_B: newTotalB.toString(),
       total: (newTotalA + newTotalB).toString(),
-      playerStake: newPlayerStake,
       totalAshort: formatShortTotal(newTotalA),
       totalBshort: formatShortTotal(newTotalB),
       stake: newPlayerStake.amount.toFixed(9),
@@ -220,19 +218,19 @@ exports.getEventEthers = async (req, res) => {
       totalStakeUsd: `$${((newTotalA + newTotalB) * ETH_TO_USD).toFixed(
         2
       )} USD~`,
+      calculatedValues: {
+        amount: inputAmount.toFixed(9),
+        expected: expected.toFixed(9),
+        newExpected: newExpected.toFixed(9),
+        ratio,
+        newRatio,
+      },
     };
 
     res.status(200).json({
       status: "success",
       data: {
         eventDTO: updatedEventDTO,
-        calculatedValues: {
-          amount: inputAmount,
-          expected,
-          newExpected,
-          ratio,
-          newRatio,
-        },
       },
     });
   } catch (error) {

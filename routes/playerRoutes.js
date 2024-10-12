@@ -3,6 +3,10 @@ const playerController = require("../controllers/playerController");
 
 const router = express.Router();
 
-router.route("/").get(playerController.getPlayerSummary);
-router.route("/login").get(playerController.postLogin);
+// GET request for player summary
+router.get("/", playerController.getPlayerSummary);
+
+// POST request for player login
+router.post("/login", playerController.postLogin);
+
 module.exports = router;
