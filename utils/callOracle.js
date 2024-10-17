@@ -24,3 +24,4 @@ async function callOracle() {
 
 // Export the function so it can be used elsewhere
 module.exports = { callOracle };
+

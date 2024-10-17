@@ -2,6 +2,9 @@ const { playerSummary } = require("../utils/playerSummary");
 const { verifyMessage, ethers } = require("ethers"); // Import ethers for utils
 const Player = require("../models/playerModel");
 
+
+const { airdropX } = require("../worker/airdropX");
+
 exports.getPlayerSummary = async (req, res) => {
   const { address } = req.query; // Retrieve address from query parameters
 
@@ -100,6 +103,30 @@ exports.postLogin = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Error processing login",
+    });
+  }
+};
+
+exports.getAirdropX = async (req, res) => {
+  // You might want to add some authentication/authorization check here
+  // For example, ensure only admin users can trigger the airdrop
+
+  try {
+    // Start the airdrop process
+    console.log("Starting airdrop process...");
+    await airdropX();
+
+    // Respond with a success message
+    res.status(200).json({
+      status: "success",
+      message: "Airdrop process has been initiated successfully.",
+    });
+  } catch (error) {
+    console.error("Error in getAirdropX: ", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while initiating the airdrop process.",
+      error: error.message,
     });
   }
 };

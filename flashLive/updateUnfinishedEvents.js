@@ -27,7 +27,18 @@ async function updateUnfinishedEvents() {
         "lastUpdated",
         new Date(event.lastUpdated * 1000).toLocaleString()
       );
-      await updateEventById(event.EVENT_ID);
+
+      // Calculate the date one month ago
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      // Check if the event is older than one month
+      if (event.START_UTIME * 1000 < oneMonthAgo.getTime()) {
+        console.log(`Deleting old event with EVENT_ID: ${event.EVENT_ID}`);
+        await deleteEventById(event.EVENT_ID);
+      } else {
+        await updateEventById(event.EVENT_ID);
+      }
     }
     console.log("length", events.length);
   } catch (error) {

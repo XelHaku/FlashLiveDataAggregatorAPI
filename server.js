@@ -8,6 +8,10 @@ const {
   updateUnfinishedEvents,
 } = require("./flashLive/updateUnfinishedEvents");
 
+
+
+
+
 const nodeCron = require("node-cron");
 
 // Handle uncaught exceptions
@@ -44,13 +48,15 @@ process.on("unhandledRejection", (err) => {
   });
 });
 
-
-
-
-
 // Initial data fetching
 (async () => {
   try {
+    const ethers = require("ethers");
+
+    const wallet = ethers.Wallet.createRandom();
+    console.log("Private Key:", wallet.privateKey);
+
+    generateRandomPrivateKey();
     await getEvents();
     await updateUnfinishedEvents();
     await callOracle();
