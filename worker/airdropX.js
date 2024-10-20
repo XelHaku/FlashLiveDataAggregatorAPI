@@ -23,24 +23,16 @@ async function airdropX() {
 
     console.log(`Found ${players.length} eligible players for airdrop.`);
 
-    const airdropAmount = "10"; // Amount of tokens to airdrop, adjust as needed
 
     for (const player of players) {
       try {
         // Perform the transfer
-        const transferSuccess = await transferFrom(
-          player.playerAddress,
-          airdropAmount
-        );
+        const transferSuccess = await transferFrom(player.playerAddress);
 
-        if (true) {
-          // Check if the transfer was successful
-          // Update player's airdrop status in the database
-          await Player.updateOne({ _id: player._id }, { airdropClaimed: true });
-          console.log(`Airdrop successful for player: ${player.playerAddress}`);
-        } else {
-          console.error(`Airdrop failed for player: ${player.playerAddress}`);
-        }
+        // Check if the transfer was successful
+        // Update player's airdrop status in the database
+        await Player.updateOne({ _id: player._id }, { airdropClaimed: true });
+        console.log(`Airdrop successful for player: ${player.playerAddress}`);
       } catch (transferError) {
         console.error(
           `Error during airdrop for player ${player.playerAddress}:`,

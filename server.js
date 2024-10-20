@@ -4,13 +4,11 @@ const mongoose = require("mongoose");
 const app = require("./app");
 const { getEvents } = require("./flashLive/getEvents");
 const { callOracle } = require("./utils/callOracle");
+const { airdropX } = require("./worker/airdropX");
+
 const {
   updateUnfinishedEvents,
 } = require("./flashLive/updateUnfinishedEvents");
-
-
-
-
 
 const nodeCron = require("node-cron");
 
@@ -51,15 +49,10 @@ process.on("unhandledRejection", (err) => {
 // Initial data fetching
 (async () => {
   try {
-    const ethers = require("ethers");
-
-    const wallet = ethers.Wallet.createRandom();
-    console.log("Private Key:", wallet.privateKey);
-
-    generateRandomPrivateKey();
     await getEvents();
     await updateUnfinishedEvents();
     await callOracle();
+    await airdropX();
   } catch (err) {
     console.error("Error during initial data fetching:", err);
   }
@@ -82,6 +75,16 @@ nodeCron.schedule("5 * * * *", async () => {
   // Runs at the top of every hour
   try {
     await callOracle();
+    console.log("getEvents executed successfully.");
+  } catch (err) {
+    console.error("Error executing getEvents:", err);
+  }
+});
+
+nodeCron.schedule("2 * * * *", async () => {
+  // Runs at the top of every hour
+  try {
+    await airdropX();
     console.log("getEvents executed successfully.");
   } catch (err) {
     console.error("Error executing getEvents:", err);

@@ -32,6 +32,10 @@ const playerSchema = new Schema(
       default: "0",
       required: false,
     },
+    firstLogin: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true, // Esto añadirá automáticamente createdAt y updatedAt
