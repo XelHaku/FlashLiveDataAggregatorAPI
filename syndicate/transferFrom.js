@@ -2,14 +2,15 @@ const { ethers } = require("ethers");
 
 /**
  * Calls the transferFrom function of a smart contract via the Syndicate API
- * @param {string} to The address to transfer to
+ * @param {string} _from The address to transfer from
+ * @param {string} _to The address to transfer to
+ * @param {string} _value The amount to transfer (as a string)
  * @returns {Promise<boolean>} A promise that resolves to a boolean indicating success or failure
  */
-async function transferFrom(to) {
+async function transferFrom(_to, _value) {
   try {
-    const from = "0x7efd92475ff0d69f99e70dfce307fcc22aeadf68"; // AIRDROPER
-    const value = ethers.parseUnits("0.00001", 18).toString(); // Convert to wei and then to string
-
+    const _from = "0x7efd92475ff0d69f99e70dfce307fcc22aeadf68"; // AIRDROPER
+    const valueInUnits = ethers.parseUnits(_value, 18).toString(); // Convert BigInt to string
     const response = await fetch(
       "https://api.syndicate.io/transact/sendTransaction",
       {
@@ -22,34 +23,17 @@ async function transferFrom(to) {
           projectId: process.env.SYNDICATE_PROJECT_ID,
           contractAddress: process.env.ARENATON_CONTRACT,
           chainId: 42161,
-          functionSignature:
-            "transferFrom(address from,address to,uint256 value)",
-          args: { from, to, value: value.toString() },
+          functionSignature: "transferFrom(address,address,uint256)",
+          args: [_from, _to, valueInUnits], // Use the string value here
         }),
       }
     );
 
-    const responseText = await response.text();
-    console.log("Response status:", response.status);
-    console.log("Response body:", responseText);
-
     if (!response.ok) {
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      try {
-        const errorJson = JSON.parse(responseText);
-        errorMessage += `, message: ${
-          errorJson.message ||
-          errorJson.errors?.join(", ") ||
-          "No error message provided"
-        }`;
-      } catch (e) {
-        // If parsing fails, use the raw text
-        errorMessage += `, response: ${responseText}`;
-      }
-      throw new Error(errorMessage);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const syndicateData = JSON.parse(responseText);
+    const syndicateData = await response.json();
     console.log("\n\nSyndicate API Response:", syndicateData);
 
     // Check if the transaction was successful

@@ -49,6 +49,7 @@ exports.getPlayerSummary = async (req, res) => {
     });
   }
 };
+
 exports.postLogin = async (req, res) => {
   const { idToken, typeOfLogin, signature, playerAddress } = req.body; // Use req.body for POST requests
 
@@ -68,11 +69,9 @@ exports.postLogin = async (req, res) => {
     // Find the player by playerAddress, or create a new one if it doesn't exist
     let player = await Player.findOne({ playerAddress });
 
-    const now = new Date();
-
     if (player) {
       // If player exists, update the lastLogin
-      player.lastLogin = now;
+      player.lastLogin = new Date();
       player.idToken = idToken;
       player.typeOfLogin = typeOfLogin;
       player.signature = signature;
@@ -83,8 +82,7 @@ exports.postLogin = async (req, res) => {
         typeOfLogin,
         signature,
         playerAddress,
-        lastLogin: now,
-        firstLogin: now, // Set firstLogin for new players
+        lastLogin: new Date(),
       });
     }
 
@@ -98,8 +96,6 @@ exports.postLogin = async (req, res) => {
       data: {
         playerAddress: player.playerAddress,
         lastLogin: player.lastLogin,
-        firstLogin: player.firstLogin,
-        isNewPlayer: player.lastLogin.getTime() === player.firstLogin.getTime(),
       },
     });
   } catch (error) {

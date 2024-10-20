@@ -50,10 +50,3 @@ $ pm2 restart app_name
 $ pm2 reload app_name
 $ pm2 stop app_name
 $ pm2 delete app_name
-
-mongodb+srv://doadmin:b08jr24G53u1ZQ9q@trebuchetdb-60e704ca.mongo.ondigitalocean.com/ArenatonDB?tls=true&authSource=admin
-RPC_URL=https://arb-mainnet.g.alchemy.com/v2/pLzUv4Hhioqbs8Le8u7aZZzAxA05wpaU
-0xa92A6B698a5374CF3B1D89285D7634A7d8F0Fc87
-SYNDICATE_API_KEY=ZcBTP4yvv0MWoBSE9LmL
-SYNDICATE_PROJECT_ID=09a586c3-f92a-47ea-9971-9b430b05aab0
-
