@@ -43,7 +43,7 @@
     "node-cron": "^3.0.3",
     "nodemon": "^2.0.22",
     "rimraf": "^6.0.1",
-    "web3": "^4.13.0",
+    "web3": "^4.14.0",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
@@ -51,10 +51,10 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^8.10.0",
     "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jsx-a11y": "^6.10.0",
+    "eslint-plugin-jsx-a11y": "^6.10.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-react": "^7.37.2",
     "prettier": "^2.8.8"
   }
 }

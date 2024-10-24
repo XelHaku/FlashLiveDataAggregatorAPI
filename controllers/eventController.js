@@ -486,7 +486,7 @@ async function updateEvent(eventId, shortDTO = true) {
   }
 
   const isLive = event.START_UTIME <= currentTime && event.WINNER === "-1";
-  const updateInterval = isLive ? 5 * 60 : 45 * 60; // 5 minutes for live events, 45 minutes otherwise
+  const updateInterval = isLive ? 15 * 60 : 120 * 60; // 15 minutes for live events, 120 minutes otherwise
 
   if (
     !event.lastUpdated ||
