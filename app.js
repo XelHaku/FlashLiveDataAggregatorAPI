@@ -12,8 +12,8 @@ const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
 
 // Import routes
-const sportRouter = require("./routes/sportRoutes");
 const eventRouter = require("./routes/eventRoutes");
+const sportRouter = require("./routes/sportRoutes");
 const countryRouter = require("./routes/countryRoutes");
 const tournamentRouter = require("./routes/tournamentRoutes");
 const newsRoutes = require("./routes/newsRoutes");

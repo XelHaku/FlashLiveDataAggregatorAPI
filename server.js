@@ -56,7 +56,7 @@ process.on("unhandledRejection", (err) => {
     const wallet = ethers.Wallet.createRandom();
     console.log("Private Key:", wallet.privateKey);
 
-    generateRandomPrivateKey();
+    // generateRandomPrivateKey();
     await getEvents();
     await updateUnfinishedEvents();
     await callOracle();
