@@ -7,10 +7,10 @@ const { ethers } = require("ethers");
  * @param {string} _value The amount to transfer (as a string)
  * @returns {Promise<boolean>} A promise that resolves to a boolean indicating success or failure
  */
-async function transferFrom(_to, _value) {
+async function transferFrom(to) {
   try {
-    const _from = "0x7efd92475ff0d69f99e70dfce307fcc22aeadf68"; // AIRDROPER
-    const valueInUnits = ethers.parseUnits(_value, 18).toString(); // Convert BigInt to string
+    const from = "0x7efd92475ff0d69f99e70dfce307fcc22aeadf68"; // AIRDROPER
+    const value = ethers.parseUnits("0.000010", 18).toString(); // Convert BigInt to string
     const response = await fetch(
       "https://api.syndicate.io/transact/sendTransaction",
       {
@@ -23,8 +23,9 @@ async function transferFrom(_to, _value) {
           projectId: process.env.SYNDICATE_PROJECT_ID,
           contractAddress: process.env.ARENATON_CONTRACT,
           chainId: 42161,
-          functionSignature: "transferFrom(address,address,uint256)",
-          args: [_from, _to, valueInUnits], // Use the string value here
+          functionSignature:
+            "transferFrom(address from,address to,uint256 value)",
+          args: { from, to, value }, // Use the string value here
         }),
       }
     );
@@ -50,3 +51,4 @@ async function transferFrom(_to, _value) {
 }
 
 module.exports = { transferFrom };
+

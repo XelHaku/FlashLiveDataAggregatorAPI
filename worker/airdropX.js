@@ -5,7 +5,7 @@ async function airdropX() {
   try {
     // Fetch eligible players from the database
     const players = await Player.find({
-      typeOfLogin: "twitter",
+      typeOfLogin: { $in: ["twitter", "google"] },
       airdropClaimed: false,
     });
 
@@ -33,7 +33,7 @@ async function airdropX() {
           airdropAmount
         );
 
-        if (true) {
+        if (transferSuccess) {
           // Check if the transfer was successful
           // Update player's airdrop status in the database
           await Player.updateOne({ _id: player._id }, { airdropClaimed: true });
