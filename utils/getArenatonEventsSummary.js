@@ -1,4 +1,5 @@
 const ethers = require("ethers");
+const ckey = require("ckey");
 
 const contractABI = [
   {
@@ -51,8 +52,8 @@ const contractABI = [
 
 async function getArenatonEventsSummary(_sport, _step, sort = "total") {
   try {
-    const _player = "0x0000000000000000000000000000000000000000",
-     const pageSize = 1200;
+    const _player = "0x0000000000000000000000220000000000000001";
+    const pageSize = 1200;
 
     const contractAddress = process.env.ARENATON_CONTRACT;
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
@@ -71,70 +72,126 @@ async function getArenatonEventsSummary(_sport, _step, sort = "total") {
       throw new Error("No events found");
     }
 
-    // Clone events for manipulation
-    const clonedEvents = activeEvents.map((event) => ({ ...event }));
+    // Process events and calculate summary
+    const summary = {
+      totalEvents: activeEvents.length,
+      activeSports: new Set(),
+      totalStaked: BigInt(0),
+      totalStakedTeamA: BigInt(0),
+      totalStakedTeamB: BigInt(0),
+      eventsByStatus: {
+        active: 0,
+        closed: 0,
+        paid: 0,
+      },
+      eventsBySport: {},
+      eventsByWinner: {
+        teamA: 0,
+        teamB: 0,
+        noWinner: 0,
+        tie: 0,
+        canceled: 0,
+      },
+      timeRanges: {
+        next24h: 0,
+        next48h: 0,
+        next7d: 0,
+      },
+    };
 
-    const sortedEvents = clonedEvents.sort((a, b) => {
-      // Compare by total (totalA + totalB)
-      const totalA = Number(a[5] ?? 0); // Convert BigInt to Number for comparison
-      const totalB = Number(b[5] ?? 0); // Convert BigInt to Number for comparison
-      return totalB - totalA; // Sort by descending total (High to Low)
-    });
+    const now = Math.floor(Date.now() / 1000);
 
-    // calidate size of page
-    // clonedEvents if length > pageSize*pageNo
+    for (const event of activeEvents) {
+      // Track unique sports
+      summary.activeSports.add(Number(event[2]));
 
-    console.log("getArenatonEventsSummary sortedEvents:", sortedEvents);
+      // Accumulate totals
+      summary.totalStaked += BigInt(event[5] || 0);
+      summary.totalStakedTeamA += BigInt(event[3] || 0);
+      summary.totalStakedTeamB += BigInt(event[4] || 0);
 
-    // Pagination logic
-    const totalItems = sortedEvents.length;
-    const totalPages = Math.ceil(totalItems / pageSize);
-    const startIndex = 0;
-    const paginatedEvents = sortedEvents.slice(
-      startIndex,
-      startIndex + pageSize
-    );
+      // Count events by status
+      if (event[8]) summary.eventsByStatus.active++;
+      if (event[9]) summary.eventsByStatus.closed++;
+      if (event[10]) summary.eventsByStatus.paid++;
 
+      // Count events by sport
+      const sportId = Number(event[2]);
+      summary.eventsBySport[sportId] =
+        (summary.eventsBySport[sportId] || 0) + 1;
 
-    console.log("getArenatonPlayerEvents Event IDs:", paginatedEvents);
+      // Count events by winner
+      switch (Number(event[6])) {
+        case 0:
+          summary.eventsByWinner.teamA++;
+          break;
+        case 1:
+          summary.eventsByWinner.teamB++;
+          break;
+        case -1:
+          summary.eventsByWinner.noWinner++;
+          break;
+        case -2:
+          summary.eventsByWinner.tie++;
+          break;
+        case 3:
+          summary.eventsByWinner.canceled++;
+          break;
+      }
 
-    return paginatedEvents;
+      // Count upcoming events within time ranges
+      const startTime = Number(event[1]);
+      if (startTime > now) {
+        const hoursDiff = (startTime - now) / 3600;
+        if (hoursDiff <= 24) summary.timeRanges.next24h++;
+        if (hoursDiff <= 48) summary.timeRanges.next48h++;
+        if (hoursDiff <= 168) summary.timeRanges.next7d++; // 7 days
+      }
+    }
+
+    // Convert BigInts to strings for JSON serialization
+    const formattedSummary = {
+      ...summary,
+      totalStaked: summary.totalStaked.toString(),
+      totalStakedTeamA: summary.totalStakedTeamA.toString(),
+      totalStakedTeamB: summary.totalStakedTeamB.toString(),
+      activeSports: Array.from(summary.activeSports),
+      averageStakePerEvent: (
+        Number(summary.totalStaked) / summary.totalEvents
+      ).toFixed(2),
+      participationRate:
+        ((summary.eventsByStatus.active / summary.totalEvents) * 100).toFixed(
+          2
+        ) + "%",
+    };
+
+    console.log("Events Summary:", formattedSummary);
+    return formattedSummary;
   } catch (error) {
-    console.error("Failed to fetch player events:", {
+    console.error("Failed to fetch event summary:", {
       message: error.message,
       transaction: error.transaction,
       data: error.data,
     });
-    return [];
+    throw error; // Re-throw to handle at caller level
   }
 }
 
-// Helper function to translate the winner field into human-readable text
-function translateWinner(winner) {
-  switch (winner) {
-    case 0:
-      return "Team A";
-    case 1:
-      return "Team B";
-    case -1:
-      return "No Winner";
-    case -2:
-      return "Tie";
-    case 3:
-      return "Event Canceled";
-    default:
-      return "Unknown";
-  }
+// Helper to format large numbers with commas
+function formatNumber(num) {
+  return new Intl.NumberFormat().format(num);
 }
 
-// Helper function to format a timestamp into a readable date string
-function formatDate(date) {
-  const timestamp = parseInt(date.toString());
-  return new Date(timestamp * 1000).toLocaleString();
+// Helper to calculate time difference in hours
+function getHoursDifference(timestamp) {
+  const now = Math.floor(Date.now() / 1000);
+  return (Number(timestamp) - now) / 3600;
 }
 
 module.exports = {
   getArenatonEventsSummary,
-  translateWinner,
-  formatDate,
+  formatNumber,
+  getHoursDifference,
 };
+
+

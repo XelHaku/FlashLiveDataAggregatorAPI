@@ -205,8 +205,8 @@ packages:
   '@types/node@22.7.5':
     resolution: {integrity: sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==}
 
-  '@types/node@22.8.2':
-    resolution: {integrity: sha512-NzaRNFV+FZkvK/KLCsNdTvID0SThyrs5SHB6tsD/lajr22FGC73N2QeDPM2wHtVde8mgcXuSsHQkH5cX1pbPLw==}
+  '@types/node@22.8.4':
+    resolution: {integrity: sha512-SpNNxkftTJOPk0oN+y2bIqurEXHTA2AOZ3EJDDKeJ5VzkvvORSvmQXGQarcOzWV1ac7DCaPBEdMDxBsM+d8jWw==}
 
   '@types/webidl-conversions@7.0.3':
     resolution: {integrity: sha512-CiJJvcRtIgzadHCYXw7dqEnMNRjhGZlYK05Mj9OyktqV8uVT8fD2BFOB7S1uwBE3Kj2Z+4UyPmFw/Ixgw/LAlA==}
@@ -1975,7 +1975,7 @@ snapshots:
     dependencies:
       undici-types: 6.19.8
 
-  '@types/node@22.8.2':
+  '@types/node@22.8.4':
     dependencies:
       undici-types: 6.19.8
 
@@ -1983,12 +1983,12 @@ snapshots:
 
   '@types/whatwg-url@8.2.2':
     dependencies:
-      '@types/node': 22.8.2
+      '@types/node': 22.8.4
       '@types/webidl-conversions': 7.0.3
 
   '@types/ws@8.5.3':
     dependencies:
-      '@types/node': 22.8.2
+      '@types/node': 22.8.4
 
   '@ungap/structured-clone@1.2.0': {}
 
