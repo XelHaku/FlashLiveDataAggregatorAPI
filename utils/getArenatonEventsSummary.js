@@ -50,7 +50,7 @@ const contractABI = [
   },
 ];
 
-async function getArenatonEventsSummary(_sport, _step, sort = "total") {
+async function getArenatonEventsSummary(_sport, _step) {
   try {
     const _player = "0x0000000000000000000000220000000000000001";
     const pageSize = 1200;
@@ -85,6 +85,7 @@ async function getArenatonEventsSummary(_sport, _step, sort = "total") {
         paid: 0,
       },
       eventsBySport: {},
+      stakedBySport: {}, // New object to track stakes per sport
       eventsByWinner: {
         teamA: 0,
         teamB: 0,
@@ -102,13 +103,22 @@ async function getArenatonEventsSummary(_sport, _step, sort = "total") {
     const now = Math.floor(Date.now() / 1000);
 
     for (const event of activeEvents) {
+      const sportId = Number(event[2]);
+      const eventTotal = BigInt(event[5] || 0);
+
       // Track unique sports
-      summary.activeSports.add(Number(event[2]));
+      summary.activeSports.add(sportId);
 
       // Accumulate totals
-      summary.totalStaked += BigInt(event[5] || 0);
+      summary.totalStaked += eventTotal;
       summary.totalStakedTeamA += BigInt(event[3] || 0);
       summary.totalStakedTeamB += BigInt(event[4] || 0);
+
+      // Accumulate stakes by sport
+      if (!summary.stakedBySport[sportId]) {
+        summary.stakedBySport[sportId] = BigInt(0);
+      }
+      summary.stakedBySport[sportId] += eventTotal;
 
       // Count events by status
       if (event[8]) summary.eventsByStatus.active++;
@@ -116,7 +126,6 @@ async function getArenatonEventsSummary(_sport, _step, sort = "total") {
       if (event[10]) summary.eventsByStatus.paid++;
 
       // Count events by sport
-      const sportId = Number(event[2]);
       summary.eventsBySport[sportId] =
         (summary.eventsBySport[sportId] || 0) + 1;
 
@@ -155,6 +164,12 @@ async function getArenatonEventsSummary(_sport, _step, sort = "total") {
       totalStaked: summary.totalStaked.toString(),
       totalStakedTeamA: summary.totalStakedTeamA.toString(),
       totalStakedTeamB: summary.totalStakedTeamB.toString(),
+      stakedBySport: Object.fromEntries(
+        Object.entries(summary.stakedBySport).map(([sport, amount]) => [
+          sport,
+          amount.toString(),
+        ])
+      ),
       activeSports: Array.from(summary.activeSports),
       averageStakePerEvent: (
         Number(summary.totalStaked) / summary.totalEvents
@@ -193,5 +208,3 @@ module.exports = {
   formatNumber,
   getHoursDifference,
 };
-
-

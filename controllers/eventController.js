@@ -149,7 +149,9 @@ const ETH_TO_USD = 2300; // This should be dynamically updated or fetched from a
 
 exports.activeEventsSummary = async (req, res) => {
   try {
-    const result = await activeEventsSummary();
+    const params = parseQueryParams(req.query);
+
+    const result = await activeEventsSummary(params.sport || "-1");
     res.status(200).json(result);
   } catch (error) {
     console.error("Error in getEventEthers:", error);

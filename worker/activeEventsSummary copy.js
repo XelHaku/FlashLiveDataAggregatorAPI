@@ -7,8 +7,7 @@ const {
 
 async function activeEventsSummary(sport) {
   try {
-    const EventsSummary = await getArenatonEventsSummary(sport, 0);
-    // const EventsSummary = await getArenatonEventsSummary(sport, 2);
+    const EventsSummary = await getArenatonEventsSummary(sport, 2);
     console.log("EventsSummary.");
     return EventsSummary;
   } catch (error) {
