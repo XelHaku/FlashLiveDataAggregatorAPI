@@ -158,6 +158,17 @@ async function getArenatonEventsSummary(_sport, _step) {
       }
     }
 
+    const stakedPctBySport = {};
+    for (const [sportId, amount] of Object.entries(summary.stakedBySport)) {
+      // Convert BigInt to number with proper precision for percentage calculation
+      const pct =
+        summary.totalStaked === BigInt(0)
+          ? 0
+          : Number((BigInt(amount) * BigInt(10000)) / summary.totalStaked) /
+            100;
+      stakedPctBySport[sportId] = pct.toFixed(2);
+    }
+
     // Convert BigInts to strings for JSON serialization
     const formattedSummary = {
       ...summary,
@@ -170,6 +181,7 @@ async function getArenatonEventsSummary(_sport, _step) {
           amount.toString(),
         ])
       ),
+      stakedPctBySport, // Add the percentage data
       activeSports: Array.from(summary.activeSports),
       averageStakePerEvent: (
         Number(summary.totalStaked) / summary.totalEvents
@@ -188,7 +200,7 @@ async function getArenatonEventsSummary(_sport, _step) {
       transaction: error.transaction,
       data: error.data,
     });
-    throw error; // Re-throw to handle at caller level
+    throw error;
   }
 }
 
@@ -208,3 +220,5 @@ module.exports = {
   formatNumber,
   getHoursDifference,
 };
+
+
