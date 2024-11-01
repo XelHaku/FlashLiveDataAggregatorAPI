@@ -11,7 +11,7 @@ const { getArenatonEvents } = require("../utils/getArenatonEvents");
 const { getArenatonPlayerEvents } = require("../utils/getArenatonPlayerEvents");
 const NewsModel = require("../models/newsModel");
 
-const PAGE_SIZE_DEFAULT = 20;
+const PAGE_SIZE_DEFAULT = 19;
 const CACHE_DURATION =  5 * 1000; // 5 minutes in milliseconds
 
 const cache = new Map();

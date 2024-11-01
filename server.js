@@ -50,60 +50,60 @@ process.on("unhandledRejection", (err) => {
 
 
 
-// // Initial data fetching
-// (async () => {
-//   try {
-//     const ethers = require("ethers");
+// Initial data fetching
+(async () => {
+  try {
+    const ethers = require("ethers");
 
-//     const wallet = ethers.Wallet.createRandom();
-//     console.log("Private Key:", wallet.privateKey);
+    const wallet = ethers.Wallet.createRandom();
+    console.log("Private Key:", wallet.privateKey);
 
-//     // generateRandomPrivateKey();
-//     await getEvents();
-//     await updateUnfinishedEvents();
-//     await callOracle();
-//   } catch (err) {
-//     console.error("Error during initial data fetching:", err);
-//   }
-// })();
+    // generateRandomPrivateKey();
+    await getEvents();
+    await updateUnfinishedEvents();
+    await callOracle();
+  } catch (err) {
+    console.error("Error during initial data fetching:", err);
+  }
+})();
 
-// // Schedule tasks using node-cron
-// nodeCron.schedule("0 * * * *", async () => {
-//   // Runs at the top of every hour
-//   try {
-//     await getEvents();
-//     console.log("getEvents executed successfully.");
-//   } catch (err) {
-//     console.error("Error executing getEvents:", err);
-//   }
-// });
+// Schedule tasks using node-cron
+nodeCron.schedule("0 * * * *", async () => {
+  // Runs at the top of every hour
+  try {
+    await getEvents();
+    console.log("getEvents executed successfully.");
+  } catch (err) {
+    console.error("Error executing getEvents:", err);
+  }
+});
 
-// // Schedule tasks using node-cron, every 5 minutes
+// Schedule tasks using node-cron, every 5 minutes
 
-// nodeCron.schedule("5 * * * *", async () => {
-//   // Runs at the top of every hour
-//   try {
-//     await callOracle();
-//     console.log("getEvents executed successfully.");
-//   } catch (err) {
-//     console.error("Error executing getEvents:", err);
-//   }
-// });
+nodeCron.schedule("5 * * * *", async () => {
+  // Runs at the top of every hour
+  try {
+    await callOracle();
+    console.log("getEvents executed successfully.");
+  } catch (err) {
+    console.error("Error executing getEvents:", err);
+  }
+});
 
-// nodeCron.schedule("0 */4 * * *", async () => {
-//   // Runs every 4 hours
-//   try {
-//     await updateUnfinishedEvents();
-//     console.log("updateUnfinishedEvents executed successfully.");
-//   } catch (err) {
-//     console.error("Error executing updateUnfinishedEvents:", err);
-//   }
-// });
+nodeCron.schedule("0 */4 * * *", async () => {
+  // Runs every 4 hours
+  try {
+    await updateUnfinishedEvents();
+    console.log("updateUnfinishedEvents executed successfully.");
+  } catch (err) {
+    console.error("Error executing updateUnfinishedEvents:", err);
+  }
+});
 
-// // Graceful shutdown on SIGTERM
-// process.on("SIGTERM", () => {
-//   console.log("👋 SIGTERM RECEIVED. Shutting down gracefully...");
-//   server.close(() => {
-//     console.log("💥 Process terminated!");
-//   });
-// });
+// Graceful shutdown on SIGTERM
+process.on("SIGTERM", () => {
+  console.log("👋 SIGTERM RECEIVED. Shutting down gracefully...");
+  server.close(() => {
+    console.log("💥 Process terminated!");
+  });
+});
