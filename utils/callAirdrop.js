@@ -3,10 +3,9 @@
 // Uncomment the following line if using Node.js below v18:
 // const fetch = require('node-fetch'); // Uncomment if Node.js version < 18
 
-async function callOracle() {
+async function callAirdrop() {
   try {
-    const response = await fetch("https://www.arenaton.com/api/run-oracle");
-    const response2 = await fetch(
+    const response = await fetch(
       "https://flashdataapi.com/api/v1/player/airdrop"
     );
 
@@ -26,5 +25,4 @@ async function callOracle() {
 }
 
 // Export the function so it can be used elsewhere
-module.exports = { callOracle };
-
+module.exports = { callAirdrop };
