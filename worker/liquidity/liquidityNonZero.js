@@ -4,9 +4,8 @@ const { updateEventFlash } = require("../../flashLive/updateEventFlash");
 const { gasslessStake } = require("../../syndicate/gasslessStake");
 const { playerSummary } = require("../../utils/playerSummary");
 
-async function liquidityNonZero() {
+async function liquidityNonZero(_playerLiquiditer, _initTeam) {
   try {
-    const _playerLiquiditer = process.env.LIQUIDITER2;
     const _playerSummary = await playerSummary(_playerLiquiditer);
 
     // Convert atonBalance to BigInt (assuming 18 decimals)
@@ -51,7 +50,7 @@ async function liquidityNonZero() {
         // if (total === 0n || totalA === 0n || totalB === 0n) {
         const eventFlash = await updateEventFlash(event.eventId);
         // let forcastedTeam = "1";
-        let forcastedTeam = "2";
+        let forcastedTeam = _initTeam;
 
         if (eventFlash.ODDS && eventFlash.ODDS.length > 0) {
           // forcastedTeam = forcasterAI(eventFlash.ODDS)
@@ -78,4 +77,5 @@ async function liquidityNonZero() {
 }
 
 module.exports = { liquidityNonZero };
-liquidityNonZero();
+liquidityNonZero(process.env.LIQUIDITER2, "2");
+liquidityNonZero(process.env.LIQUIDITER, "1");
