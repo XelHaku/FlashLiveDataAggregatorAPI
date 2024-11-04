@@ -7,7 +7,7 @@ const ck = require("ckey");
 const Event = require("../models/eventModel");
 const { EventById } = require("./EventById");
 const { scorePartValidation } = require("./scorePartValidation");
-
+const { dbUpdateEventById } = require("../db/dbUpdateEventById");
 async function updateUnfinishedEvents() {
   try {
     const events = await getUnfinishedEvents();
@@ -37,7 +37,7 @@ async function updateUnfinishedEvents() {
         console.log(`Deleting old event with EVENT_ID: ${event.EVENT_ID}`);
         await deleteEventById(event.EVENT_ID);
       } else {
-        await updateEventById(event.EVENT_ID);
+        await dbUpdateEventById(event.EVENT_ID);
       }
     }
     console.log("length", events.length);
@@ -48,38 +48,5 @@ async function updateUnfinishedEvents() {
   }
 }
 
-// cleanUnfinishedEvents();
-
-async function updateEventById(_eventId) {
-  try {
-    // Fetch updated event data from an external source using the EventById function.
-    let newEvent = await EventById(_eventId);
-
-    if (newEvent && newEvent != 404) {
-      // Update the event data in the database using findOneAndUpdate method.
-      const updatedEvent = await Event.findOneAndUpdate(
-        { EVENT_ID: _eventId },
-        newEvent,
-        {
-          upsert: true, // Create a new document if no matching document is found.
-          new: true, // Return the updated document after the update operation.
-          setDefaultsOnInsert: true, // Set default values if a new document is created.
-        }
-      );
-
-      // Remove unwanted keys from the updated event object.
-      if (updatedEvent) {
-        updatedEvent._id = undefined;
-        updatedEvent.__v = undefined;
-      }
-
-      // console.log("Updated or created event:", updatedEvent);
-    } else {
-      deleteEventById(_eventId);
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
 
 module.exports = { updateUnfinishedEvents };

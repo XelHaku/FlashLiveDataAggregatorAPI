@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "script":"node worker/activeEventsSummary.js",
+    "script2": "node worker/activeEventsSummary.js",
+    "script": "node worker/liquidity/liquidityNonZero.js",
     "balance": "node balanceReport.js",
     "build:digitalocean": "npm install --production=false && npm run build && npm ci"
   },
