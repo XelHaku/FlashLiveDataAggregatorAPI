@@ -5,6 +5,40 @@ const { playerEventSummary } = require("../worker/playerEventSummary");
 
 const { airdropX } = require("../worker/airdropX");
 
+exports.getPlayerEventsSummary = async (req, res) => {
+  const { address } = req.query; // Retrieve address from query parameters
+
+  try {
+    // Check if the address parameter is provided
+    if (!address) {
+      return res.status(400).json({
+        status: "error",
+        message: "Address parameter is required",
+      });
+    }
+
+    // Fetch the player summary using the utility function
+    const playerEventSummaryData = await playerEventSummary(address);
+
+    // Prepare the JSON object with the required structure
+    const response = {
+      status: "success",
+      data: {
+        playerEventSummaryData,
+      },
+    };
+
+    // Respond with the player summary data
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in getPlayerSummary: ", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error fetching player summary",
+    });
+  }
+};
+
 exports.getPlayerSummary = async (req, res) => {
   const { address } = req.query; // Retrieve address from query parameters
 
@@ -36,40 +70,6 @@ exports.getPlayerSummary = async (req, res) => {
         totalCommission: playerSummaryData.totalCommission,
         accumulatedCommission: playerSummaryData.accumulatedCommission,
         totalSupply: playerSummaryData.totalSupply,
-      },
-    };
-
-    // Respond with the player summary data
-    res.status(200).json(response);
-  } catch (error) {
-    console.error("Error in getPlayerSummary: ", error);
-    res.status(500).json({
-      status: "error",
-      message: "Error fetching player summary",
-    });
-  }
-};
-
-exports.getPlayerEventsSummary = async (req, res) => {
-  const { address } = req.query; // Retrieve address from query parameters
-
-  try {
-    // Check if the address parameter is provided
-    if (!address) {
-      return res.status(400).json({
-        status: "error",
-        message: "Address parameter is required",
-      });
-    }
-
-    // Fetch the player summary using the utility function
-    const playerEventSummaryData = await playerEventSummary(address);
-
-    // Prepare the JSON object with the required structure
-    const response = {
-      status: "success",
-      data: {
-        playerEventSummaryData,
       },
     };
 

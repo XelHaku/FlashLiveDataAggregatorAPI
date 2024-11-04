@@ -8,7 +8,7 @@ router.get("/", playerController.getPlayerSummary);
 
 // POST request for player login
 router.post("/login", playerController.postLogin);
-router.post("/events", playerController.getPlayerEventsSummary);
+router.get("/events", playerController.getPlayerEventsSummary);
 router.get("/airdrop", playerController.getAirdropX);
 
 
