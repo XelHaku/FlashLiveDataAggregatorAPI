@@ -137,7 +137,7 @@ async function getArenatonEvents(
 
     return {
       events: paginatedEvents,
-      eventIds: activeEventsIdList,
+      eventIdList: activeEventsIdList,
       pagination: {
         totalItems,
         totalPages,

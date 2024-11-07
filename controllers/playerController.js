@@ -85,10 +85,10 @@ exports.getPlayerSummary = async (req, res) => {
 };
 
 exports.postLogin = async (req, res) => {
-  const { idToken, typeOfLogin, signature, playerAddress } = req.body; // Use req.body for POST requests
+  const { idToken, typeOfLogin, email, signature, playerAddress } = req.body; // Use req.body for POST requests
 
   try {
-    const message = `Login ${playerAddress} ${idToken} ${typeOfLogin}`;
+    const message = `Login ${email} ${playerAddress} ${idToken} ${typeOfLogin}`;
 
     // Validate the signature using ethers
     const signerAddress = verifyMessage(message, signature);
@@ -109,6 +109,7 @@ exports.postLogin = async (req, res) => {
       player.idToken = idToken;
       player.typeOfLogin = typeOfLogin;
       player.signature = signature;
+      player.email = email;
     } else {
       // If player doesn't exist, create a new one
       player = new Player({
@@ -117,6 +118,7 @@ exports.postLogin = async (req, res) => {
         signature,
         playerAddress,
         lastLogin: new Date(),
+        email,
       });
     }
 

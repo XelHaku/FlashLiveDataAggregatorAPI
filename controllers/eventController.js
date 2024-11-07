@@ -95,7 +95,12 @@ const fetchEvents = async (params) => {
         active: false,
       });
     }
-    const eventList = await getEventsByList(activeEventIds, 0, size, 0);
+    const eventList = await getEventsByList(
+      activeEventIds.eventIdList,
+      0,
+      size,
+      0
+    );
 
     return eventList;
   }
@@ -114,37 +119,41 @@ const fetchEvents = async (params) => {
   throw new Error("No valid filters provided");
 };
 
-const enrichEvents = async (events, playerAddress) => {
-  const currentTime = Math.floor(Date.now() / 1000);
+// const enrichEvents = async (events, playerAddress) => {
+//   const currentTime = Math.floor(Date.now() / 1000);
 
-  return Promise.all(
-    events.map(async (eventFlash) => {
-      const { eventDTO } = await getEventDTO(
-        eventFlash.EVENT_ID,
-        playerAddress
-      );
+//   return Promise.all(
+//     events.map(async (eventFlash) => {
+//       // const { eventDTO } = await getEventDTO(
+//       //   eventFlash.EVENT_ID,
+//       //   playerAddress
+//       // );
 
-      let eventState = "0";
-      if (["FINISHED", "CANCELED", "POSTPONED"].includes(eventFlash.STAGE)) {
-        eventState = "3";
-      } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
-        eventState = "1";
-      } else if (eventFlash.START_UTIME < currentTime) {
-        eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
-      }
+//       let eventState = "0";
+//       if (
+//         ["FINISHED", "CANCELED", "POSTPONED", "ABANDONED", "DELAYED"].includes(
+//           eventFlash.STAGE
+//         )
+//       ) {
+//         eventState = "3";
+//       } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
+//         eventState = "1";
+//       } else if (eventFlash.START_UTIME < currentTime) {
+//         eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
+//       }
 
-      if (eventDTO.payout) {
-        eventState = "4";
-      }
+//       if (eventDTO.payout) {
+//         eventState = "4";
+//       }
 
-      eventDTO.eventState = eventState;
-      eventFlash.queryTime = currentTime;
+//       eventDTO.eventState = eventState;
+//       eventFlash.queryTime = currentTime;
 
-      return { eventFlash, eventDTO };
-    })
-  );
-};
-const ETH_TO_USD = 2300; // This should be dynamically updated or fetched from an API
+//       return eventFlash;
+//     })
+//   );
+// };
+const ETH_TO_USD = 2600; // This should be dynamically updated or fetched from an API
 
 exports.activeEventsSummary = async (req, res) => {
   try {
@@ -157,8 +166,6 @@ exports.activeEventsSummary = async (req, res) => {
     res.status(500).json({ status: "error", message: "Internal server error" });
   }
 };
-
-
 
 exports.getEventEthers = async (req, res) => {
   try {
@@ -350,12 +357,12 @@ exports.getEvents = async (req, res) => {
         .json({ status: "error", message: "No events found" });
     }
 
-    const enrichedEvents = await enrichEvents(events, params.playerAddress);
+    // const enrichedEvents = await enrichEvents(events, params.playerAddress);
     const totalPages = Math.ceil(totalCount / params.size);
 
     const result = {
       status: "success",
-      data: { events: enrichedEvents },
+      data: { events: events },
       pagination: {
         currentPage: params.page,
         pageSize: params.size,
@@ -453,7 +460,7 @@ async function getEventsByList(
     : [];
 
   // Fetch events in parallel
-  const eventsPromises = idsArray.map((id) => updateEvent(id, shortDTO));
+  const eventsPromises = idsArray.map((id) => getEventDB(id));
   const events = await Promise.allSettled(eventsPromises);
 
   // Filter out rejected promises and null events
@@ -479,6 +486,15 @@ async function getEventsByList(
     totalCount: filteredEvents.length,
   };
 }
+
+async function getEventDB(eventId) {
+  const queryFields = { NEWS: 0, VIDEOS: 0 };
+  let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();
+
+  return event;
+}
+
+
 
 async function updateEvent(eventId, shortDTO = true) {
   const queryFields = shortDTO ? { NEWS: 0, VIDEOS: 0 } : {};

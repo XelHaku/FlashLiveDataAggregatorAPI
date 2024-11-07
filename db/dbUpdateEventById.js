@@ -1,6 +1,6 @@
 const ck = require("ckey");
 const Event = require("../models/eventModel");
-const { EventById } = require("./EventById");
+const { EventById } = require("../flashLive/EventById");
 
 // cleanUnfinishedEvents();
 
