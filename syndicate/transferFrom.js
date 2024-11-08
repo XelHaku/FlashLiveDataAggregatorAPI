@@ -24,7 +24,7 @@ async function transferFrom(to) {
           contractAddress: process.env.ARENATON_CONTRACT,
           chainId: 42161,
           functionSignature:
-            "transferFrom(address from,address to,uint256 value)",
+            "transferFrom(address from, address to, uint256 value)",
           args: { from, to, value }, // Use the string value here
         }),
       }
@@ -38,10 +38,10 @@ async function transferFrom(to) {
     console.log("\n\nSyndicate API Response:", syndicateData);
 
     // Check if the transaction was successful
-    if (syndicateData.status === "success") {
+    if (syndicateData) {
       return true;
     } else {
-      console.error("Transaction failed:", syndicateData.message);
+      console.error("Transaction failed:", syndicateData);
       return false;
     }
   } catch (error) {

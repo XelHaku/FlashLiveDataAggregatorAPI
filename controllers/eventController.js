@@ -119,40 +119,31 @@ const fetchEvents = async (params) => {
   throw new Error("No valid filters provided");
 };
 
-// const enrichEvents = async (events, playerAddress) => {
-//   const currentTime = Math.floor(Date.now() / 1000);
+const calculateEventState = async (eventFlash, eventDTO) => {
+  const currentTime = Math.floor(Date.now() / 1000);
 
-//   return Promise.all(
-//     events.map(async (eventFlash) => {
-//       // const { eventDTO } = await getEventDTO(
-//       //   eventFlash.EVENT_ID,
-//       //   playerAddress
-//       // );
+  let eventState = "0";
+  if (
+    ["FINISHED", "CANCELED", "POSTPONED", "ABANDONED", "DELAYED"].includes(
+      eventFlash.STAGE
+    )
+  ) {
+    eventState = "3";
+  } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
+    eventState = "1";
+  } else if (eventFlash.START_UTIME < currentTime) {
+    eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
+  }
 
-//       let eventState = "0";
-//       if (
-//         ["FINISHED", "CANCELED", "POSTPONED", "ABANDONED", "DELAYED"].includes(
-//           eventFlash.STAGE
-//         )
-//       ) {
-//         eventState = "3";
-//       } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
-//         eventState = "1";
-//       } else if (eventFlash.START_UTIME < currentTime) {
-//         eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
-//       }
+  if (eventDTO.payout) {
+    eventState = "4";
+  }
 
-//       if (eventDTO.payout) {
-//         eventState = "4";
-//       }
+  eventDTO.eventState = eventState;
+  eventFlash.queryTime = currentTime;
 
-//       eventDTO.eventState = eventState;
-//       eventFlash.queryTime = currentTime;
-
-//       return eventFlash;
-//     })
-//   );
-// };
+  return eventState;
+};
 const ETH_TO_USD = 2600; // This should be dynamically updated or fetched from an API
 
 exports.activeEventsSummary = async (req, res) => {
@@ -251,6 +242,9 @@ exports.getEventEthers = async (req, res) => {
       safeRatio,
       safeNewRatio,
     });
+
+    const eventFlash = await getEventDBshort(id);
+    const eventState = await calculateEventState(eventFlash, eventDTO);
 
     // Update the eventDTO with new calculated values
     const updatedEventDTO = {
@@ -494,8 +488,18 @@ async function getEventDB(eventId) {
   return event;
 }
 
+async function getEventDBshort(eventId) {
+  const queryFields = {
+    EVENT_ID: 1,
+    STAGE: 1,
+    WINNER: 1,
+    START_UTIME: 1,
+  };
 
+  let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();
 
+  return event;
+}
 async function updateEvent(eventId, shortDTO = true) {
   const queryFields = shortDTO ? { NEWS: 0, VIDEOS: 0 } : {};
   let event = await Event.findOne({ EVENT_ID: eventId }, queryFields).lean();

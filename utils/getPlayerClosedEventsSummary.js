@@ -30,11 +30,7 @@ const contractABI = [
             type: "tuple",
             internalType: "struct AStructs.Stake",
             components: [
-              {
-                name: "amount",
-                type: "uint256",
-                internalType: "uint256",
-              },
+              { name: "amount", type: "uint256", internalType: "uint256" },
               { name: "team", type: "uint8", internalType: "uint8" },
             ],
           },
@@ -66,7 +62,6 @@ async function getPlayerClosedEventsSummary(_player) {
       provider
     );
 
-    // Add proper parameter separation with commas
     const activeEvents = await contract.getPlayerEvents(
       _player,
       0, // sport parameter
@@ -76,15 +71,7 @@ async function getPlayerClosedEventsSummary(_player) {
     );
 
     if (!activeEvents || !Array.isArray(activeEvents)) {
-      return {
-        totalEvents: 0,
-        activeSports: [],
-        totalStaked: "0",
-        eventsByStatus: { active: 0, closed: 0, paid: 0 },
-        eventsBySport: {},
-        stakedBySport: {},
-        timeRanges: { next24h: 0, next48h: 0, next7d: 0 },
-      };
+      return getEmptySummary();
     }
 
     const summary = initializeSummary();
@@ -110,6 +97,26 @@ async function getPlayerClosedEventsSummary(_player) {
   }
 }
 
+function getEmptySummary() {
+  return {
+    totalEvents: 0,
+    activeSports: [],
+    totalStaked: "0",
+    eventsByStatus: { active: 0, closed: 0, paid: 0 },
+    eventsBySport: {},
+    stakedBySport: {},
+    timeRanges: { next24h: 0, next48h: 0, next7d: 0 },
+    performance: {
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      canceled: 0,
+      winRate: { overall: "0%", bySport: {} },
+      profitLoss: { total: "0", bySport: {}, profitabilityRate: "0%" },
+    },
+  };
+}
+
 function initializeSummary() {
   return {
     totalEvents: 0,
@@ -128,27 +135,103 @@ function initializeSummary() {
       canceled: 0,
     },
     timeRanges: { next24h: 0, next48h: 0, next7d: 0 },
+    performance: {
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      canceled: 0,
+      totalProfit: BigInt(0),
+      profitBySport: {},
+      winsBySport: {},
+      lossesBySport: {},
+    },
   };
 }
 
 function processEvent(event, summary, now) {
   const sportId = Number(event[2]);
   const eventTotal = BigInt(event[5] || 0);
+  const playerStake = event[7];
+  const stakeAmount = BigInt(playerStake.amount || 0);
+  const playerTeam = Number(playerStake.team);
+  const winner = Number(event[6]);
+  const totalTeamA = BigInt(event[3] || 0);
+  const totalTeamB = BigInt(event[4] || 0);
 
   summary.totalEvents++;
   summary.activeSports.add(sportId);
-  summary.totalStaked += eventTotal;
-  summary.totalStakedTeamA += BigInt(event[3] || 0);
-  summary.totalStakedTeamB += BigInt(event[4] || 0);
+  summary.totalStaked += stakeAmount;
+  summary.totalStakedTeamA += playerTeam === 0 ? stakeAmount : BigInt(0);
+  summary.totalStakedTeamB += playerTeam === 1 ? stakeAmount : BigInt(0);
 
-  // Initialize sport stake tracking if needed
+  // Initialize tracking for sport if needed
   summary.stakedBySport[sportId] =
-    (summary.stakedBySport[sportId] || BigInt(0)) + eventTotal;
+    (summary.stakedBySport[sportId] || BigInt(0)) + stakeAmount;
   summary.eventsBySport[sportId] = (summary.eventsBySport[sportId] || 0) + 1;
+  summary.performance.profitBySport[sportId] =
+    summary.performance.profitBySport[sportId] || BigInt(0);
+  summary.performance.winsBySport[sportId] =
+    summary.performance.winsBySport[sportId] || 0;
+  summary.performance.lossesBySport[sportId] =
+    summary.performance.lossesBySport[sportId] || 0;
+
+  if (event[9]) {
+    // If event is closed
+    calculateEventPerformance(event, summary, sportId, {
+      playerTeam,
+      stakeAmount,
+      winner,
+      totalTeamA,
+      totalTeamB,
+      eventTotal,
+    });
+  }
 
   processEventStatus(event, summary);
   processEventWinner(event, summary);
   processEventTiming(event, summary, now);
+}
+
+function calculateEventPerformance(event, summary, sportId, params) {
+  const {
+    playerTeam,
+    stakeAmount,
+    winner,
+    totalTeamA,
+    totalTeamB,
+    eventTotal,
+  } = params;
+
+  if (!event[9] || stakeAmount === BigInt(0)) return;
+
+  let profit = BigInt(0);
+
+  if (winner === playerTeam) {
+    summary.performance.wins++;
+    summary.performance.winsBySport[sportId]++;
+    const winningPool = playerTeam === 0 ? totalTeamA : totalTeamB;
+    const payoutRatio =
+      eventTotal === BigInt(0)
+        ? BigInt(0)
+        : (eventTotal * BigInt(1000000)) / winningPool;
+    profit = (stakeAmount * payoutRatio) / BigInt(1000000) - stakeAmount;
+  } else if (winner === -2) {
+    summary.performance.ties++;
+    profit = BigInt(0);
+  } else if (winner === 3) {
+    summary.performance.canceled++;
+    profit = BigInt(0);
+  } else if (
+    winner === -1 ||
+    ((winner === 0 || winner === 1) && winner !== playerTeam)
+  ) {
+    summary.performance.losses++;
+    summary.performance.lossesBySport[sportId]++;
+    profit = -stakeAmount;
+  }
+
+  summary.performance.totalProfit += profit;
+  summary.performance.profitBySport[sportId] += profit;
 }
 
 function processEventStatus(event, summary) {
@@ -184,12 +267,18 @@ function processEventTiming(event, summary, now) {
 
 function formatSummary(summary) {
   const stakedPctBySport = calculateStakedPercentages(summary);
+  const winRate = calculateWinRate(summary);
+  const profitLoss = formatProfitLoss(summary);
 
   return {
-    ...summary,
+    totalEvents: summary.totalEvents,
+    activeSports: Array.from(summary.activeSports),
     totalStaked: summary.totalStaked.toString(),
     totalStakedTeamA: summary.totalStakedTeamA.toString(),
     totalStakedTeamB: summary.totalStakedTeamB.toString(),
+    eventsByStatus: summary.eventsByStatus,
+    eventsBySport: summary.eventsBySport,
+    eventsByWinner: summary.eventsByWinner,
     stakedBySport: Object.fromEntries(
       Object.entries(summary.stakedBySport).map(([sport, amount]) => [
         sport,
@@ -197,9 +286,61 @@ function formatSummary(summary) {
       ])
     ),
     stakedPctBySport,
-    activeSports: Array.from(summary.activeSports),
+    timeRanges: summary.timeRanges,
     averageStakePerEvent: calculateAverageStake(summary),
     participationRate: calculateParticipationRate(summary),
+    performance: {
+      wins: summary.performance.wins,
+      losses: summary.performance.losses,
+      ties: summary.performance.ties,
+      canceled: summary.performance.canceled,
+      winRate,
+      profitLoss,
+    },
+  };
+}
+
+function calculateWinRate(summary) {
+  const winRateBySport = {};
+
+  for (const sportId of summary.activeSports) {
+    const wins = summary.performance.winsBySport[sportId] || 0;
+    const losses = summary.performance.lossesBySport[sportId] || 0;
+    const totalSportEvents = wins + losses;
+    winRateBySport[sportId] =
+      totalSportEvents === 0
+        ? "0.00%"
+        : ((wins / totalSportEvents) * 100).toFixed(2) + "%";
+  }
+
+  const totalCompleted = summary.performance.wins + summary.performance.losses;
+  const overallWinRate =
+    totalCompleted === 0
+      ? "0.00%"
+      : ((summary.performance.wins / totalCompleted) * 100).toFixed(2) + "%";
+
+  return {
+    overall: overallWinRate,
+    bySport: winRateBySport,
+  };
+}
+
+function formatProfitLoss(summary) {
+  return {
+    total: summary.performance.totalProfit.toString(),
+    bySport: Object.fromEntries(
+      Object.entries(summary.performance.profitBySport).map(
+        ([sport, amount]) => [sport, amount.toString()]
+      )
+    ),
+    profitabilityRate:
+      summary.totalStaked === BigInt(0)
+        ? "0.00%"
+        : (
+            (Number(summary.performance.totalProfit) /
+              Number(summary.totalStaked)) *
+            100
+          ).toFixed(2) + "%",
   };
 }
 
@@ -228,7 +369,6 @@ function calculateParticipationRate(summary) {
         "%";
 }
 
-// Helper functions
 function formatNumber(num) {
   return new Intl.NumberFormat().format(num);
 }
@@ -243,60 +383,3 @@ module.exports = {
   formatNumber,
   getHoursDifference,
 };
-
-// function getPlayerEvents(
-//   address playerAddress,
-//   uint8 sport,
-//   bool active,
-//   uint256 size,
-//   uint256 pageNo
-// ) external view returns (AStructs.EventDTO[] memory) {
-//   AStructs.Player storage player = players[playerAddress];
-
-//   // Determine whether to retrieve active or closed events
-//   bytes8[] storage eventList = active ? player.activeEvents : player.closedEvents;
-
-//   uint256 totalEvents = eventList.length;
-
-//   // Calculate start index based on pageNo and size
-//   uint256 startIndex = (pageNo - 1) * size;
-
-//   // Calculate the number of events to return based on available events
-//   uint256 endIndex = startIndex + size;
-//   if (endIndex > totalEvents) {
-//     endIndex = totalEvents;
-//   }
-
-//   // Filter and retrieve events matching the sport condition
-//   return _filterAndGetEvents(eventList, playerAddress, sport, startIndex, endIndex);
-// }
-
-// function _filterAndGetEvents(
-//   bytes8[] storage eventList,
-//   address playerAddress,
-//   uint8 sport,
-//   uint256 startIndex,
-//   uint256 endIndex
-// ) internal view returns (AStructs.EventDTO[] memory) {
-//   // Initialize a temporary array to store filtered events
-//   AStructs.EventDTO[] memory tempEvents = new AStructs.EventDTO[](endIndex - startIndex);
-//   uint256 count = 0;
-
-//   // Populate the tempEvents array with event details that match the sport filter
-//   for (uint256 i = startIndex; i < endIndex; i++) {
-//     AStructs.EventDTO memory eventDTO = _getEventDTO(eventList[i], playerAddress);
-//     // Check if the event matches the specified sport or if sport < 0 (which means return all)
-//     if (eventDTO.sport == sport || sport == 0) {
-//       tempEvents[count] = eventDTO;
-//       count++;
-//     }
-//   }
-
-//   // Create a final array with the exact size needed to store the filtered events
-//   AStructs.EventDTO[] memory finalEventsDTO = new AStructs.EventDTO[](count);
-//   for (uint256 i = 0; i < count; i++) {
-//     finalEventsDTO[i] = tempEvents[i];
-//   }
-
-//   return finalEventsDTO;
-// }

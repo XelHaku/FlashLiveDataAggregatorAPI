@@ -56,3 +56,11 @@ async function airdropX() {
 }
 
 module.exports = { airdropX };
+
+// Execute if running directly
+if (require.main === module) {
+  Promise.all([airdropX()]).catch((error) => {
+    console.error("Error in main execution:", error);
+    process.exit(1);
+  });
+}
