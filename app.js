@@ -35,7 +35,7 @@ if (ck.NODE_ENV === "development") {
 
 // Limit requests from same API
 const limiter = rateLimit({
-  max: 1000,
+  max: 2000,
   windowMs: 60 * 1000,
   message: "Too many requests from this IP, please try again in a minute!",
 });

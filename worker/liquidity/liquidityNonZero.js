@@ -10,7 +10,7 @@ async function calculateStakeAmount(playerAddress) {
 
   const DECIMALS = 18n;
   const SCALE = 10n ** DECIMALS;
-  const STAKE_PERCENTAGE = 100n; // 0.2% (1/500)
+  const STAKE_PERCENTAGE = 100n; //1% (1/100)
 
   // Convert string balance to BigInt with proper decimal handling
   const atonBalanceBigInt = BigInt(
@@ -30,6 +30,10 @@ async function calculateStakeAmount(playerAddress) {
 // Process single event
 async function processEvent(event, stakeAmount, playerAddress, initTeam) {
   const playerStake = BigInt(event.playerStake.amount || 0);
+  const playerTeam = BigInt(event.playerStake.team || 0);
+  if (playerTeam > 0n) {
+    initTeam = playerTeam;
+  }
 
   if (playerStake === 0n) {
     const eventFlash = await updateEventFlash(event.eventId);
@@ -68,6 +72,7 @@ async function liquidityNonZero(playerAddress, initTeam) {
 
     // Process events with calculated stake amount
     for (const event of events) {
+      console.log("Event:", event);
       await processEvent(
         event,
         balanceInfo.stakeAmountBigInt,

@@ -8,6 +8,7 @@
     "script2": "node worker/activeEventsSummary.js",
     "airdrop": "node worker/airdropX.js",
     "script": "node worker/liquidity/liquidityNonZero.js",
+    "script3": " node worker/updateLiveEvents.js ",
     "balance": "node balanceReport.js",
     "build:digitalocean": "npm install --production=false && npm run build && npm ci"
   },

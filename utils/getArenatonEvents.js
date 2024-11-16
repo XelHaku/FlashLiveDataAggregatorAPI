@@ -153,7 +153,7 @@ async function getArenatonEvents(
     });
     return {
       events: [],
-      eventIds: [],
+      eventIdList: [],
       pagination: {
         totalItems: 0,
         totalPages: 0,

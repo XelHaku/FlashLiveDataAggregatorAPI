@@ -65,7 +65,7 @@ async function getEventDTO(
     return { eventDTO };
   } catch (error) {
     console.error(`Failed to fetch or process event DTO: ${error.message}`);
-    return { eventDTO: createDefaultEventDTO(_eventId) };
+    return null;
   }
 }
 // Helper function to map the raw event data to a structured DTO

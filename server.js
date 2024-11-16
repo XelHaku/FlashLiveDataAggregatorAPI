@@ -3,6 +3,8 @@ const ck = require("ckey");
 const mongoose = require("mongoose");
 const app = require("./app");
 const { getEvents } = require("./flashLive/getEvents");
+const { updateLiveEvents } = require("./worker/updateLiveEvents");
+
 const { callOracle } = require("./utils/callOracle");
 const { liquidityNonZero } = require("./worker/liquidity/liquidityNonZero");
 
@@ -53,8 +55,9 @@ process.on("unhandledRejection", (err) => {
 
     const wallet = ethers.Wallet.createRandom();
     console.log("Private Key:", wallet.privateKey);
-
-    // generateRandomPrivateKey();
+    await updateLiveEvents(2);
+    await updateLiveEvents(1);
+    await updateLiveEvents(0);
     await liquidityNonZero(process.env.LIQUIDITER2, "2"),
       await liquidityNonZero(process.env.LIQUIDITER, "1"),
       await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
@@ -97,6 +100,19 @@ nodeCron.schedule("0 */4 * * *", async () => {
       await liquidityNonZero(process.env.LIQUIDITER, "1"),
       await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
       console.log("updateUnfinishedEvents executed successfully.");
+  } catch (err) {
+    console.error("Error executing updateUnfinishedEvents:", err);
+  }
+});
+
+nodeCron.schedule("0 1 * * *", async () => {
+  // Runs every 1 hours
+  try {
+    await updateLiveEvents(2);
+    await updateLiveEvents(1);
+    await updateLiveEvents(0);
+
+    console.log("updateLiveEvents executed successfully.");
   } catch (err) {
     console.error("Error executing updateUnfinishedEvents:", err);
   }

@@ -74,7 +74,21 @@ const fetchEvents = async (params) => {
       page,
       "date"
     );
-    return await getEventsByList(playerEventIds, skip, size, 0);
+    // return await getEventsByList(playerEventIds, skip, size, 0);
+    const { events, totalCount } = await getEventsByList(
+      playerEventIds,
+      skip,
+      size,
+      0
+    );
+
+    const pagination = {
+      sport: sport,
+      size: size,
+      page: page,
+      active: active,
+    };
+    return { events, totalCount, pagination };
   }
 
   if (active) {
@@ -87,7 +101,7 @@ const fetchEvents = async (params) => {
       size
     );
 
-    if (!activeEventIds || activeEventIds.length === 0) {
+    if (!activeEventIds || activeEventIds.eventIdList.length === 0) {
       console.log("No active events found. Fetching non-active events.");
       // Recursively call fetchEvents with active set to false
       return fetchEvents({
@@ -95,19 +109,44 @@ const fetchEvents = async (params) => {
         active: false,
       });
     }
-    const eventList = await getEventsByList(
+    const { events, totalCount } = await getEventsByList(
       activeEventIds.eventIdList,
       0,
       size,
       0
     );
 
-    return eventList;
+    if (events.length !== 0) {
+      const sport = events[0].SPORT.SPORT_ID;
+    }
+    const pagination = {
+      sport: sport,
+      size: size,
+      page: page,
+    };
+    return { events, totalCount, pagination };
   }
 
   if (id) {
     const idArray = Array.isArray(id) ? id : [id];
-    return await getEventsByList(idArray, skip, size, sortOrder, false);
+    const { events, totalCount } = await getEventsByList(
+      idArray,
+      skip,
+      size,
+      sortOrder,
+      false
+    );
+    const pagination = {
+      sport: events.length > 0 ? events[0].SPORT : "",
+      country: events.length > 0 ? events[0].COUNTRY_ID : "",
+      countryName: events.length > 0 ? events[0].COUNTRY_NAME : "",
+      tournament: events.length > 0 ? events[0].TOURNAMENT_ID : "",
+      tournamentName: events.length > 0 ? events[0].SHORT_NAME : "",
+      size: size,
+      page: page,
+    };
+
+    return { events, totalCount, pagination };
   }
 
   if (sport) {
@@ -131,10 +170,14 @@ const calculateEventState = async (eventFlash, eventDTO) => {
     eventState = "3";
   } else if (eventFlash.STAGE === "SCHEDULED" && eventDTO.open) {
     eventState = "1";
-  } else if (eventFlash.START_UTIME < currentTime) {
-    eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
   }
 
+  if (eventFlash.START_UTIME < currentTime) {
+    eventState = eventFlash.WINNER !== "-1" ? "3" : "2";
+  }
+  if (eventDTO.closed) {
+    eventState = "3";
+  }
   if (eventDTO.payout) {
     eventState = "4";
   }
@@ -160,10 +203,16 @@ exports.activeEventsSummary = async (req, res) => {
 
 exports.getEventEthers = async (req, res) => {
   try {
-    const { id, playerAddress, input, team } = req.query;
+    let { id, playerAddress, input, team } = req.query;
 
     // Fetch the current event data
     let { eventDTO } = await getEventDTO(id, playerAddress);
+    if (!team) {
+      team = 0;
+    }
+    if (!input) {
+      input = 0;
+    }
 
     if (!eventDTO) {
       return res
@@ -177,10 +226,10 @@ exports.getEventEthers = async (req, res) => {
     // Determine the effective team
     let effectiveTeam = team;
     if (
-      eventDTO.playerStake.team === "1" ||
-      eventDTO.playerStake.team === "2"
+      eventDTO?.playerStake?.team === "1" ||
+      eventDTO?.playerStake?.team === "2"
     ) {
-      effectiveTeam = eventDTO.playerStake.team;
+      effectiveTeam = eventDTO?.playerStake?.team;
     }
 
     // Ensure all numeric values are properly parsed
@@ -214,6 +263,8 @@ exports.getEventEthers = async (req, res) => {
       newPlayerStake.amount,
       effectiveTeam
     );
+
+    const diffExpected = newExpected - expected;
 
     // Calculate the ratio (odds)
     const calculateRatio = (expectedPayout, stakeAmount) => {
@@ -249,16 +300,24 @@ exports.getEventEthers = async (req, res) => {
     // Update the eventDTO with new calculated values
     const updatedEventDTO = {
       ...eventDTO,
-      total_A: newTotalA.toFixed(6),
-      total_B: newTotalB.toFixed(6),
-      total: (newTotalA + newTotalB).toFixed(6),
+      team: effectiveTeam,
+      inputAmount: inputAmount.toFixed(6),
+      eventState: eventState,
+      total: (currentTotalA + currentTotalB).toFixed(6),
+      total_A: currentTotalA.toFixed(6),
+      total_B: currentTotalB.toFixed(6),
+      oddsA: oddsPivot(currentTotalA, currentTotalB),
+      oddsB: oddsPivot(currentTotalB, currentTotalA),
       totalAshort: formatShortTotal(newTotalA),
       totalBshort: formatShortTotal(newTotalB),
       stake: newPlayerStake.amount.toFixed(6),
       expected: newExpected.toFixed(6),
       ratio: safeNewRatio.toFixed(2),
-      oddsA: oddsPivot(newTotalA, newTotalB),
-      oddsB: oddsPivot(newTotalB, newTotalA),
+      newTotal: (newTotalA + newTotalB).toFixed(6),
+      newTotal_A: newTotalA.toFixed(6),
+      newTotal_B: newTotalB.toFixed(6),
+      newOddsA: oddsPivot(newTotalA, newTotalB),
+      newOddsB: oddsPivot(newTotalB, newTotalA),
       totalStakeUsd: `$${((newTotalA + newTotalB) * ETH_TO_USD).toFixed(
         2
       )} USD~`,
@@ -267,7 +326,7 @@ exports.getEventEthers = async (req, res) => {
         amount: inputAmount.toFixed(6),
         expected: expected.toFixed(6),
         newExpected: newExpected.toFixed(6),
-        diffExpected: (newExpected - expected).toFixed(6),
+        diffExpected: diffExpected.toFixed(6),
         ratio: safeRatio.toFixed(2),
         newRatio: safeNewRatio.toFixed(2),
         diffRatio: (safeNewRatio - safeRatio).toFixed(2),
@@ -343,7 +402,7 @@ exports.getEvents = async (req, res) => {
       }
     }
 
-    const { events, totalCount } = await fetchEvents(params);
+    const { events, totalCount, pagination } = await fetchEvents(params);
 
     if (!events.length) {
       return res
@@ -357,17 +416,7 @@ exports.getEvents = async (req, res) => {
     const result = {
       status: "success",
       data: { events: events },
-      pagination: {
-        currentPage: params.page,
-        pageSize: params.size,
-        totalItems: totalCount,
-        totalPages,
-        active: params.active,
-        player: params.player,
-        sport: params.sport || "-1",
-        country: params.country || "-1",
-        tournament: params.tournament || "-1",
-      },
+      pagination: pagination,
     };
 
     cache.set(cacheKey, { data: result, timestamp: Date.now() });
@@ -384,16 +433,36 @@ async function getEventsByTournament(tournament, skip, size, sortOrder) {
     START_UTIME: { $gt: currentTime },
   };
 
-  const [events, totalCount] = await Promise.all([
+  const [events] = await Promise.all([
     Event.find(query)
       .sort({ START_UTIME: sortOrder })
       .skip(skip)
       .limit(size)
       .lean(),
-    Event.countDocuments(query),
   ]);
 
-  return { events, totalCount };
+  const totalCount = events.length;
+
+  if (events.length !== 0) {
+    const tournament = events[0].TOURNAMENT_ID;
+    const sport = events[0].SPORT.SPORT_ID;
+    const country = events[0].COUNTRY_ID;
+    const countryName = events[0].COUNTRY_NAME;
+    const tournamentName = events[0].SHORT_NAME;
+  }
+  const pagination = {
+    sport: sport || "-1",
+    country: country || "",
+    tournament: tournament || "",
+    countryName: countryName || "",
+    tournamentName: tournamentName || "",
+    size: pageSize,
+    page: pageNo,
+    sortOrder: sort,
+    active: false,
+  };
+
+  return { events, totalCount, pagination };
 }
 
 async function getEventsBySport(sport, pageSize, pageNo, sort) {
@@ -411,7 +480,17 @@ async function getEventsBySport(sport, pageSize, pageNo, sort) {
     Event.countDocuments(filter),
   ]);
 
-  return { events, totalCount };
+  const pagination = {
+    sport: sport,
+    country: "",
+    tournament: "",
+    size: pageSize,
+    page: pageNo,
+    sortOrder: sort,
+    active: false,
+  };
+
+  return { events, totalCount, pagination };
 }
 
 async function getEventsBySportAndCountry(
@@ -436,7 +515,22 @@ async function getEventsBySportAndCountry(
     Event.countDocuments(filter),
   ]);
 
-  return { events, totalCount };
+  if (events.length !== 0) {
+    const sport = events[0].SPORT.SPORT_ID;
+    const country = events[0].COUNTRY_ID;
+    const countryName = events[0].COUNTRY_NAME;
+  }
+  const pagination = {
+    sport: sport,
+    country: country,
+    countryName: countryName,
+    size: pageSize,
+    page: pageNo,
+    sortOrder: sort,
+    active: false,
+  };
+
+  return { events, totalCount, pagination };
 }
 
 async function getEventsByList(
