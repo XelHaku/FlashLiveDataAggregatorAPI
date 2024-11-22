@@ -141,7 +141,7 @@ async function getArenatonEvents(
       pagination: {
         totalItems,
         totalPages,
-        currentPage: pageNo,
+        currentpageNo: pageNo,
         pageSize,
       },
     };
@@ -157,7 +157,7 @@ async function getArenatonEvents(
       pagination: {
         totalItems: 0,
         totalPages: 0,
-        currentPage: pageNo,
+        currentpageNo: pageNo,
         pageSize,
       },
     };

@@ -41,9 +41,9 @@ const parseQueryParams = (query) => {
     tournament,
     sport,
     country,
-    page: parseInt(pageNo) || 1,
-    size: parseInt(pageSize) || PAGE_SIZE_DEFAULT,
-    sortOrder: sort.toLowerCase() === "desc" ? -1 : 1,
+    pageNo: parseInt(pageNo) || 1,
+    pageSize: pageSize || PAGE_SIZE_DEFAULT,
+    sort: sort.toLowerCase() === "desc" ? -1 : 1,
     playerAddress,
     player: player === "true",
   };
@@ -58,34 +58,34 @@ const fetchEvents = async (params) => {
     id,
     country,
     page,
-    size,
-    sortOrder,
+    pageSize,
+    sort,
   } = params;
-  const skip = (page - 1) * size;
+  const skip = (page - 1) * pageSize;
   if (tournament && tournament !== "0") {
-    return getEventsByTournament(tournament, skip, size, sortOrder);
+    return getEventsByTournament(tournament, skip, pageSize, sort);
   }
   if (player && playerAddress) {
     const playerEventIds = await getArenatonPlayerEvents(
       playerAddress,
       sport,
       active,
-      size,
+      pageSize,
       page,
       "date"
     );
-    // return await getEventsByList(playerEventIds, skip, size, 0);
+    // return await getEventsByList(playerEventIds, skip, pageSize, 0);
     const { events, totalCount } = await getEventsByList(
       playerEventIds,
       skip,
-      size,
+      pageSize,
       0
     );
 
     const pagination = {
       sport: sport,
-      size: size,
-      page: page,
+      pageSize: pageSize,
+      pageNo: page,
       active: active,
     };
     return { events, totalCount, pagination };
@@ -98,7 +98,7 @@ const fetchEvents = async (params) => {
       playerAddress,
       "total",
       page,
-      size
+      pageSize
     );
 
     if (!activeEventIds || activeEventIds.eventIdList.length === 0) {
@@ -112,7 +112,7 @@ const fetchEvents = async (params) => {
     const { events, totalCount } = await getEventsByList(
       activeEventIds.eventIdList,
       0,
-      size,
+      pageSize,
       0
     );
 
@@ -121,8 +121,8 @@ const fetchEvents = async (params) => {
     }
     const pagination = {
       sport: sport,
-      size: size,
-      page: page,
+      pageSize: pageSize,
+      pageNo: page,
     };
     return { events, totalCount, pagination };
   }
@@ -132,8 +132,8 @@ const fetchEvents = async (params) => {
     const { events, totalCount } = await getEventsByList(
       idArray,
       skip,
-      size,
-      sortOrder,
+      pageSize,
+      sort,
       false
     );
     const pagination = {
@@ -142,8 +142,8 @@ const fetchEvents = async (params) => {
       countryName: events.length > 0 ? events[0].COUNTRY_NAME : "",
       tournament: events.length > 0 ? events[0].TOURNAMENT_ID : "",
       tournamentName: events.length > 0 ? events[0].SHORT_NAME : "",
-      size: size,
-      page: page,
+      pageSize: pageSize,
+      pageNo: page,
     };
 
     return { events, totalCount, pagination };
@@ -151,8 +151,8 @@ const fetchEvents = async (params) => {
 
   if (sport) {
     return country
-      ? getEventsBySportAndCountry(sport, country, size, page, sortOrder)
-      : getEventsBySport(sport, size, page, sortOrder);
+      ? getEventsBySportAndCountry(sport, country, pageSize, page, sort)
+      : getEventsBySport(sport, pageSize, page, sort);
   }
 
   throw new Error("No valid filters provided");
@@ -425,46 +425,67 @@ exports.getEvents = async (req, res) => {
     handleError(res, error);
   }
 };
+async function getEventsByTournament(tournament, skip, pageSize, sort, pageNo) {
+  try {
+    // Subtract 1 day from the current time (in seconds)
+    const oneDayInSeconds = 24 * 60 * 60;
+    const currentTime = Math.floor(Date.now() / 1000) - oneDayInSeconds;
 
-async function getEventsByTournament(tournament, skip, size, sortOrder) {
-  const currentTime = Math.floor(Date.now() / 1000);
-  const query = {
-    TOURNAMENT_ID: tournament,
-    START_UTIME: { $gt: currentTime },
-  };
+    const query = {
+      TOURNAMENT_ID: tournament,
+      START_UTIME: { $gt: currentTime },
+    };
 
-  const [events] = await Promise.all([
-    Event.find(query)
-      .sort({ START_UTIME: sortOrder })
-      .skip(skip)
-      .limit(size)
-      .lean(),
-  ]);
+    const [events] = await Promise.all([
+      Event.find(query)
+        .sort({ START_UTIME: sort })
+        .skip(skip)
+        .limit(pageSize)
+        .select(
+          "-_id -AWAY_PARTICIPANT_IDS -AWAY_PARTICIPANT_TYPES -SHORTNAME_AWAY -STANDING_INFO -TOURNAMENT_ID -__v -TEMPLATE_ID -SOURCE_TYPE -SHORTNAME_HOME -AWAY_EVENT_PARTICIPANT_ID -AWAY_GOAL_VAR -GAME_TIME -HAS_LINEPS -HAS_LIVE_TABLE -HOME_EVENT_PARTICIPANT_ID -HOME_GOAL_VAR -HOME_PARTICIPANT_IDS -HOME_PARTICIPANT_NAME_ONE -HOME_PARTICIPANT_TYPES -IME -IMM -IMP -IMW -PLAYING_ON_SETS -RECENT_OVERS -TOURNAMENT_SEASON_ID -TOURNAMENT_STAGE_ID -TOURNAMENT_STAGE_TYPE -TOURNAMENT_TEMPLATE_ID -TOURNAMENT_TYPE -TSS -VISIBLE_RUN_RATE -ZKL -ZKU -AWAY_SCORE_PART_2 -HOME_SCORE_PART_2 -ODDS_WINNER -ODDS_WINNER_OUTCOME"
+        ) // Exclude fields
+        .lean(),
+    ]);
 
-  const totalCount = events.length;
+    const totalCount = events.length;
 
-  if (events.length !== 0) {
-    const tournament = events[0].TOURNAMENT_ID;
-    const sport = events[0].SPORT.SPORT_ID;
-    const country = events[0].COUNTRY_ID;
-    const countryName = events[0].COUNTRY_NAME;
-    const tournamentName = events[0].SHORT_NAME;
+    let sport = "-1",
+      country = "",
+      tournamentId = "",
+      countryName = "",
+      tournamentName = "";
+
+    if (events.length !== 0) {
+      tournamentId = events[0].TOURNAMENT_ID;
+      sport = events[0].SPORT;
+      country = events[0].COUNTRY_ID;
+      countryName = events[0].COUNTRY_NAME;
+      tournamentName = events[0].SHORT_NAME;
+    }
+
+    const pagination = {
+      sport: sport,
+      country: country,
+      tournament: tournamentId,
+      countryName: countryName,
+      tournamentName: tournamentName,
+      pageSize: pageSize,
+      pageNo: pageNo || 1,
+      sort: sort,
+      active: false,
+    };
+
+    return { events, totalCount, pagination };
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return {
+      events: [],
+      totalCount: 0,
+      pagination: null,
+      error: error.message,
+    };
   }
-  const pagination = {
-    sport: sport || "-1",
-    country: country || "",
-    tournament: tournament || "",
-    countryName: countryName || "",
-    tournamentName: tournamentName || "",
-    size: pageSize,
-    page: pageNo,
-    sortOrder: sort,
-    active: false,
-  };
-
-  return { events, totalCount, pagination };
 }
-
 async function getEventsBySport(sport, pageSize, pageNo, sort) {
   const currentTime = Math.floor(Date.now() / 1000);
   const filter = { START_UTIME: { $gt: currentTime } };
@@ -484,9 +505,9 @@ async function getEventsBySport(sport, pageSize, pageNo, sort) {
     sport: sport,
     country: "",
     tournament: "",
-    size: pageSize,
-    page: pageNo,
-    sortOrder: sort,
+    pageSize: pageSize,
+    pageNo: pageNo,
+    sort: sort,
     active: false,
   };
 
@@ -524,9 +545,9 @@ async function getEventsBySportAndCountry(
     sport: sport,
     country: country,
     countryName: countryName,
-    size: pageSize,
-    page: pageNo,
-    sortOrder: sort,
+    pageSize: pageSize,
+    pageNo: pageNo,
+    sort: sort,
     active: false,
   };
 
@@ -536,8 +557,8 @@ async function getEventsBySportAndCountry(
 async function getEventsByList(
   ids,
   skip = 0,
-  size = Infinity,
-  sortOrder = 1,
+  pageSize = Infinity,
+  sort = 1,
   shortDTO = true
 ) {
   // Ensure ids is always an array
@@ -556,18 +577,18 @@ async function getEventsByList(
     .filter((result) => result.status === "fulfilled" && result.value !== null)
     .map((result) => result.value);
 
-  // Sort events based on sortOrder
-  if (sortOrder !== 0) {
+  // Sort events based on sort
+  if (sort !== 0) {
     filteredEvents.sort((a, b) => {
       const aTime = a.START_UTIME || 0;
       const bTime = b.START_UTIME || 0;
-      return sortOrder === 1 ? aTime - bTime : bTime - aTime;
+      return sort === 1 ? aTime - bTime : bTime - aTime;
     });
   }
 
   // Calculate start and end indices for pagination
-  const startIndex = Math.max(0, skip);
-  const endIndex = Math.min(filteredEvents.length, startIndex + size);
+  const startIndex = 0;
+  const endIndex = Math.min(filteredEvents.length, startIndex + pageSize);
 
   return {
     events: filteredEvents.slice(startIndex, endIndex),
@@ -658,7 +679,7 @@ async function updateEvent(eventId, shortDTO = true) {
 exports.getSearchEvents = async (req, res) => {
   const { search_text, sport, pageNo = 1, pageSize = 12 } = req.query;
   const page = parseInt(pageNo, 10);
-  const size = parseInt(pageSize, 10);
+  const _pageSize = parseInt(pageSize, 10);
 
   try {
     if (!search_text || search_text.length < 4) {
@@ -708,8 +729,8 @@ exports.getSearchEvents = async (req, res) => {
       Event.find(query)
         .select(fieldsToSelect)
         .sort({ START_UTIME: 1 })
-        .skip((page - 1) * size)
-        .limit(size)
+        .skip((page - 1) * _pageSize)
+        .limit(pageSize)
         .lean(),
       Event.countDocuments(query),
     ]);
@@ -721,14 +742,14 @@ exports.getSearchEvents = async (req, res) => {
       });
     }
 
-    const totalPages = Math.ceil(totalItems / size);
+    const totalPages = Math.ceil(totalItems / _pageSize);
 
     res.status(200).json({
       status: "success",
       data: events,
       pagination: {
-        currentPage: page,
-        pageSize: size,
+        currentpageNo: page,
+        pageSize: _pageSize,
         totalItems,
         totalPages,
       },
