@@ -682,28 +682,29 @@ exports.getSearchEvents = async (req, res) => {
   const _pageSize = parseInt(pageSize, 10);
 
   try {
-    if (!search_text || search_text.length < 4) {
+    if (!search_text || search_text.length < 3) {
       return res.status(400).json({
         status: "error",
-        message: "Search text must be at least 4 characters long",
+        message: "Search text must be at least 3 characters long",
       });
     }
 
-    const escapedSearchText = search_text
-      .trim()
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchRegex = new RegExp(`^${escapedSearchText}`, "i");
+    // Escape special regex characters and create a case-insensitive regex
+    const escapedSearchText = search_text.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
 
     const query = {
       $or: [
-        { EVENT_ID: searchRegex },
-        { AWAY_NAME: searchRegex },
-        { HOME_NAME: searchRegex },
-        { CATEGORY_NAME: searchRegex },
-        { COUNTRY_NAME: searchRegex },
-        { NAME: searchRegex },
-        { SHORTNAME_AWAY: searchRegex },
-        { SHORTNAME_HOME: searchRegex },
+        { EVENT_ID: { $regex: escapedSearchText, $options: "i" } },
+        { AWAY_NAME: { $regex: escapedSearchText, $options: "i" } },
+        { HOME_NAME: { $regex: escapedSearchText, $options: "i" } },
+        { CATEGORY_NAME: { $regex: escapedSearchText, $options: "i" } },
+        { COUNTRY_NAME: { $regex: escapedSearchText, $options: "i" } },
+        { NAME: { $regex: escapedSearchText, $options: "i" } },
+        { SHORTNAME_AWAY: { $regex: escapedSearchText, $options: "i" } },
+        { SHORTNAME_HOME: { $regex: escapedSearchText, $options: "i" } },
       ],
       START_UTIME: { $gt: Math.floor(Date.now() / 1000) },
     };
@@ -723,6 +724,12 @@ exports.getSearchEvents = async (req, res) => {
       ODDS: 1,
       SHORTNAME_HOME: 1,
       SHORTNAME_AWAY: 1,
+      SPORT: 1,
+      COUNTRY_ID: 1,
+      WINNER: 1,
+      AWAY_IMAGES: 1,
+      HOME_IMAGES: 1,
+      STAGE_TYPE: 1,
     };
 
     const [events, totalItems] = await Promise.all([

@@ -10,7 +10,7 @@ async function calculateStakeAmount(playerAddress) {
 
   const DECIMALS = 18n;
   const SCALE = 10n ** DECIMALS;
-  const STAKE_PERCENTAGE = 100n; //1% (1/100)
+  const STAKE_PERCENTAGE = 1000n; //1% (1/100)
 
   // Convert string balance to BigInt with proper decimal handling
   const atonBalanceBigInt = BigInt(
