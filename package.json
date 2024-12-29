@@ -30,24 +30,24 @@
   "homepage": "https://github.com/XelHaku/FlashScoreAggregatorAPI#readme",
   "dependencies": {
     "@eslint/config-array": "^0.17.1",
-    "@eslint/object-schema": "^2.1.4",
-    "axios": "^1.7.7",
+    "@eslint/object-schema": "^2.1.5",
+    "axios": "^1.7.9",
     "ckey": "^1.0.3",
     "cors": "^2.8.5",
     "ethers": "^6.13.4",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^6.11.2",
     "glob": "^11.0.0",
     "helmet": "^7.2.0",
     "hpp": "^0.2.3",
     "lru-cache": "^7.18.3",
-    "mongoose": "^7.8.2",
+    "mongoose": "^7.8.3",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "nodemon": "^2.0.22",
     "rimraf": "^6.0.1",
-    "web3": "^4.15.0",
+    "web3": "^4.16.0",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
@@ -58,7 +58,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react": "^7.37.3",
     "prettier": "^2.8.8"
   }
 }

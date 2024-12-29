@@ -56,16 +56,16 @@ process.on("unhandledRejection", (err) => {
     const wallet = ethers.Wallet.createRandom();
     console.log("Private Key:", wallet.privateKey);
     await callOracle();
-    await updateLiveEvents(2);
-    await updateLiveEvents(1);
-    await updateLiveEvents(0);
-    await liquidityNonZero(process.env.LIQUIDITER2, "2"),
-      await liquidityNonZero(process.env.LIQUIDITER, "1"),
-      await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
-      await liquidityNonZero("0xAF7F1F446c8Aba2e3b5d00DA35E71817305024e9", "1"),
-      await liquidityNonZero("0xf89A71711500cE2d111DAa98285920F6bd6Dd538", "1"),
-      await liquidityNonZero("0xA0e57e3Ed5C714C6aE56665f65FD790a36dC4337", "2"),
-      await getEvents();
+    // await updateLiveEvents(2);
+    // await updateLiveEvents(1);
+    // await updateLiveEvents(0);
+    // await liquidityNonZero(process.env.LIQUIDITER2, "2"),
+    //   await liquidityNonZero(process.env.LIQUIDITER, "1"),
+    //   await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
+    //   await liquidityNonZero("0xAF7F1F446c8Aba2e3b5d00DA35E71817305024e9", "1"),
+    //   await liquidityNonZero("0xf89A71711500cE2d111DAa98285920F6bd6Dd538", "1"),
+    //   await liquidityNonZero("0xA0e57e3Ed5C714C6aE56665f65FD790a36dC4337", "2"),
+    await getEvents();
     await updateUnfinishedEvents();
   } catch (err) {
     console.error("Error during initial data fetching:", err);
@@ -99,14 +99,14 @@ nodeCron.schedule("0 */4 * * *", async () => {
   // Runs every 4 hours
   try {
     await updateUnfinishedEvents();
-    await liquidityNonZero(process.env.LIQUIDITER2, "2"),
-      await liquidityNonZero(process.env.LIQUIDITER, "1"),
-      await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
-      await liquidityNonZero("0xAF7F1F446c8Aba2e3b5d00DA35E71817305024e9", "1"),
-      await liquidityNonZero("0xf89A71711500cE2d111DAa98285920F6bd6Dd538", "1"),
-      await liquidityNonZero("0xA0e57e3Ed5C714C6aE56665f65FD790a36dC4337", "2"),
-      await liquidityNonZero("0xbc8ec38d988e775b21c2c484d205f6bc9731ea7e", "2"),
-      console.log("updateUnfinishedEvents executed successfully.");
+    // await liquidityNonZero(process.env.LIQUIDITER2, "2"),
+    //   await liquidityNonZero(process.env.LIQUIDITER, "1"),
+    //   await liquidityNonZero("0xBc8eC38D988E775b21c2C484d205F6bc9731Ea7E", "2"),
+    //   await liquidityNonZero("0xAF7F1F446c8Aba2e3b5d00DA35E71817305024e9", "1"),
+    //   await liquidityNonZero("0xf89A71711500cE2d111DAa98285920F6bd6Dd538", "1"),
+    //   await liquidityNonZero("0xA0e57e3Ed5C714C6aE56665f65FD790a36dC4337", "2"),
+    //   await liquidityNonZero("0xbc8ec38d988e775b21c2c484d205f6bc9731ea7e", "2"),
+    //   console.log("updateUnfinishedEvents executed successfully.");
   } catch (err) {
     console.error("Error executing updateUnfinishedEvents:", err);
   }
@@ -115,9 +115,9 @@ nodeCron.schedule("0 */4 * * *", async () => {
 nodeCron.schedule("0 1 * * *", async () => {
   // Runs every 1 hours
   try {
-    await updateLiveEvents(2);
-    await updateLiveEvents(1);
-    await updateLiveEvents(0);
+    // await updateLiveEvents(2);
+    // await updateLiveEvents(1);
+    // await updateLiveEvents(0);
 
     console.log("updateLiveEvents executed successfully.");
   } catch (err) {
