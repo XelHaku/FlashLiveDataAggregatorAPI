@@ -65,16 +65,15 @@ process.on("unhandledRejection", (err) => {
     //   await liquidityNonZero("0xAF7F1F446c8Aba2e3b5d00DA35E71817305024e9", "1"),
     //   await liquidityNonZero("0xf89A71711500cE2d111DAa98285920F6bd6Dd538", "1"),
     //   await liquidityNonZero("0xA0e57e3Ed5C714C6aE56665f65FD790a36dC4337", "2"),
-    await getEvents();
-    await updateUnfinishedEvents();
+    // await getEvents();
+    // await updateUnfinishedEvents();
   } catch (err) {
     console.error("Error during initial data fetching:", err);
   }
 })();
 
 // Schedule tasks using node-cron
-nodeCron.schedule("0 * * * *", async () => {
-  // Runs at the top of every hour
+nodeCron.schedule("0 */12 * * *", async () => {  // Runs at the top of every hour
   try {
     await getEvents();
     console.log("getEvents executed successfully.");

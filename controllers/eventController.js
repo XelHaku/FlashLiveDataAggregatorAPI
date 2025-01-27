@@ -49,8 +49,8 @@ const parseQueryParams = (query) => {
   };
 };
 const fetchEvents = async (params) => {
+  const active = false
   const {
-    active,
     player,
     playerAddress,
     sport,
