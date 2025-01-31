@@ -14,7 +14,7 @@
       {
         "type": "node",
         "request": "launch",
-        "name": "Launch Program",
+        "name": "clear Program",
         "skipFiles": ["<node_internals>/**"],
         "program": "${workspaceFolder}/clear.js"
       }

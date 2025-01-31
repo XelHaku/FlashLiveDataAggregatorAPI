@@ -62,12 +62,12 @@ async function playerSummary(playerAddress) {
 
     const totalSupply = await contract.totalSupply();
 
-    console.log(
-      "Fetching player summary for address:",
-      playerAddress,
-      totalCommission.toString(),
-      accumulatedCommission.toString()
-    );
+    // console.log(
+    //   "Fetching player summary for address:",
+    //   playerAddress,
+    //   totalCommission.toString(),
+    //   accumulatedCommission.toString()
+    // );
 
     // Format and return the data
     const formattedAccount = renameAccountProperties(account, playerAddress);

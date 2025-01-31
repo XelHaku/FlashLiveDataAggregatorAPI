@@ -91,7 +91,7 @@ async function getArenatonEvents(
   _player = "0x0000000000000000000000000000000000000000",
   sort = "total",
   pageNo = 1,
-  pageSize = 12
+  pageSize = 120
 ) {
   try {
     const contractAddress = process.env.ARENATON_CONTRACT;
@@ -133,7 +133,7 @@ async function getArenatonEvents(
     // Extract eventIds from paginated events
     const activeEventsIdList = paginatedEvents.map((event) => event.eventId);
 
-    console.log("getArenatonPlayerEvents Event IDs:", activeEventsIdList);
+    // console.log("getArenatonPlayerEvents Event IDs:", activeEventsIdList);
 
     return {
       events: paginatedEvents,
